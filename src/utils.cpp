@@ -14,11 +14,32 @@ bool trimNewlineInplace(std::string& str) {
 
 namespace Gz {
 	Reader::Reader(const std::string& fn) : file_name(fn) {
+		//std::cerr << "gz ctor\n";
 		buffer = new char[buf_size];
 		file_handler = gzopen(file_name.c_str(), "rb");
 	}
 
+	Reader::Reader(const Reader& gzr) noexcept {
+		//std::cerr << "gz cptor\n";
+		last_line = gzr.last_line;
+		file_name = gzr.file_name;
+		file_handler = gzopen(file_name.c_str(), "rb");
+		buffer = new char[buf_size];
+		state = gzr.state;
+	}
+
+	Reader::Reader(Reader&& other) noexcept {
+		//std::cerr << "gz mvtor\n";
+		last_line = std::move(other.last_line);
+		file_name = std::move(other.file_name);
+		file_handler = gzopen(file_name.c_str(), "rb");
+		buffer = new char[buf_size];
+		state = std::move(other.state);
+	}
+
+
 	Reader::~Reader() {
+		//std::cerr << "gz dtor\n";
 		gzclose(file_handler);
 		delete[] buffer;
 	}
@@ -43,6 +64,4 @@ namespace Gz {
 			return line;
 		}
 	}
-
-
 }

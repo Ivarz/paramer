@@ -18,13 +18,14 @@ namespace Gz {
 		public:
 
 			explicit Reader(const std::string& fn);
+			Reader(Reader&& other) noexcept;
+			Reader(const Reader&) noexcept;
 			~Reader();
 
 			std::string nextLine();
 			std::string last_line = "";
 
 		private:
-			Reader(const Reader&);
 			Reader& operator=(const Reader&);
 
 			const size_t buf_size = 4096;
