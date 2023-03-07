@@ -27,6 +27,7 @@ namespace Fasta {
 			void print() const;
 			void softmask(size_t beg, size_t end);
 			void softmaskWithKraken2(const Kraken2::Rec& k2_rec, size_t kmer_size=35);
+			std::vector<Rec> splitOnMask() const;
 			std::string seq_id;
 			std::string seq;
 	};
@@ -35,4 +36,3 @@ namespace Fasta {
 }
 
 #endif
-

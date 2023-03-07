@@ -1,6 +1,5 @@
 #include "fastx.h"
 
-
 namespace Fastq {
 
 	Rec::Rec(const std::string& sid, const std::string& sq, const std::string& q) :
@@ -46,6 +45,16 @@ namespace Fasta {
 		Dna::softmask(seq, beg, end);
 	}
 
+	std::vector<Rec> Rec::splitOnMask() const {
+		std::vector<Rec> result;
+		std::vector<std::string> split_seqs = Dna::splitOnMask(seq);
+		for (size_t = 0; i < split_seqs.size(); i++) {
+			std::string curr_seq_id = seq_id + "_" + std::to_string(i);
+			result.emplace_back(curr_seq_id, split_seqs[i]);
+		}
+		return result;
+	}
+
 	std::optional<Rec> nextRecord(Gz::Reader& gzr) {
 		std::string tmp_buffer = gzr.last_line;
 		std::string seq_id = tmp_buffer.size() > 0 && tmp_buffer[0] == '>'
@@ -68,10 +77,6 @@ namespace Fasta {
 	}
 	void Rec::softmaskWithKraken2(const Kraken2::Rec& k2_rec, size_t kmer_size) {
 		auto r1_pairs = k2_rec.getR1Kmers();
-		//if (k2Rec.seq_id != seq_id) {
-			//std::cerr << "Masking error: sequence IDs for kraken2 record and fasta record do not match\n";
-			//return;
-		//}
 		size_t kmer_pos = 0;
 		for (const auto& p: r1_pairs) {
 			if (p.first != "0"){

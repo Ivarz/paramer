@@ -115,12 +115,15 @@ void print_cmd_usage() {
 int main(int argc, char** argv) {
 
 	std::string templ_str = "ATCGTctagtagctgcatgCTCAGCGTCNGACGACGTAcgatcgagCAGTCnATCGATgatgatgagaCGAaA";
-	auto reg = Dna::nextToggleMaskedRegion(templ_str, 0);
-	while (reg.first != templ_str.size()) {
-		//std::cout << reg.first << ".." << reg.second << '\n';
-		std::cout << templ_str.substr(reg.first, reg.second - reg.first) << '\n';
-		reg = Dna::nextToggleMaskedRegion(templ_str, reg.second);
+	auto res = Dna::splitOnMask(templ_str);
+	for (const auto& r: res) {
+		std::cout << r + "_test_string_" + std::to_string(42) << '\n';
 	}
+	//while (reg.first != templ_str.size()) {
+		////std::cout << reg.first << ".." << reg.second << '\n';
+		//std::cout << templ_str.substr(reg.first, reg.second - reg.first) << '\n';
+		//reg = Dna::nextToggleMaskedRegion(templ_str, reg.second);
+	//}
 	//for (const auto& s: splitted) {
 		//std::cout << s << '\n';
 	//}

@@ -66,31 +66,24 @@ namespace Dna {
 		}
 		return std::pair<size_t,size_t>(beg, i);
 	}
+
 	std::vector<std::string> splitOnMask(const std::string& seq) {
 		size_t beg = 0;
 		size_t end = 0;
 		bool masked = false;
 		bool prev_masked = masked;
 		std::vector<std::string> result;
-		
-		for (size_t i = 0; i < seq.size(); i++){
-			char c = seq[i];
-			prev_masked = masked;
-			masked = c == 'a' || c == 't' || c == 'g' || c == 'c' || c == 'N' || c == 'n';
-			if (!masked) {
-				end = i;
+
+		std::pair<size_t, size_t> reg = Dna::nextToggleMaskedRegion(seq, 0);
+
+		while (reg.first != seq.size()) {
+			std::string curr_seq = seq.substr(reg.first, reg.second - reg.first);
+			if (curr_seq.size() > 0 && (curr_seq[0] < 97) && curr_seq[0] != 'N') {
+				result.push_back(curr_seq);
 			}
-			if (prev_masked != masked) {
-				end = i;
-				if (beg < end) {
-					result.push_back(seq.substr(beg, end-beg));
-				}
-				beg = end;
-			}
+			reg = Dna::nextToggleMaskedRegion(seq, reg.second);
 		}
-		result.push_back(seq.substr(beg, seq.size()-beg));
+		
 		return result;
 	}
-
-
 }
