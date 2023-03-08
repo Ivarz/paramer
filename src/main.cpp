@@ -115,9 +115,10 @@ void print_cmd_usage() {
 int main(int argc, char** argv) {
 
 	std::string templ_str = "ATCGTctagtagctgcatgCTCAGCGTCNGACGACGTAcgatcgagCAGTCnATCGATgatgatgagaCGAaA";
-	auto res = Dna::splitOnMask(templ_str);
+	Fasta::Rec fr = Fasta::Rec("test_id", templ_str);
+	auto res = fr.splitOnMask();
 	for (const auto& r: res) {
-		std::cout << r + "_test_string_" + std::to_string(42) << '\n';
+		r.print();
 	}
 	//while (reg.first != templ_str.size()) {
 		////std::cout << reg.first << ".." << reg.second << '\n';

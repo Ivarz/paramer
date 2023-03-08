@@ -48,7 +48,7 @@ namespace Fasta {
 	std::vector<Rec> Rec::splitOnMask() const {
 		std::vector<Rec> result;
 		std::vector<std::string> split_seqs = Dna::splitOnMask(seq);
-		for (size_t = 0; i < split_seqs.size(); i++) {
+		for (size_t i = 0; i < split_seqs.size(); i++) {
 			std::string curr_seq_id = seq_id + "_" + std::to_string(i);
 			result.emplace_back(curr_seq_id, split_seqs[i]);
 		}
