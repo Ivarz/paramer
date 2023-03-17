@@ -5,6 +5,7 @@
 #include "fastx.h"
 #include "seq.h"
 #include "kraken2.h"
+#include "bloom.h"
 
 namespace Cmd {
 	namespace Mask {
@@ -102,6 +103,88 @@ namespace Cmd {
 		}
 
 	}
+	namespace BloomBuild {
+		void print_help(const cxxopts::Options& options) {
+			std::cerr << options.help();
+		}
+		int run(int argc, char** argv) {
+
+			cxxopts::Options options("bloom-build", "build Bloom's filter");
+			options.add_options()
+				("r,reference", "Reference in fasta format", cxxopts::value<std::string>())
+				("k,klen", "Kmer length to use for filter", cxxopts::value<uint64_t>())
+				("s,size", "filter size in bytes", cxxopts::value<uint64_t>()->default_value("100000000"))
+				("l,seqlen", "Minimum sequence length to use for inserting in filter", cxxopts::value<uint64_t>()->default_value("100"))
+				("n,nhash", "Number of hashes to use", cxxopts::value<uint64_t>())
+				("o,output", "output file", cxxopts::value<std::string>())
+				("h,help", "Help message");
+
+			if (argc < 3) {
+				print_help(options);
+				return 0;
+			}
+
+			auto result = options.parse(argc-1, argv+1);
+			if (result.count("help")) {
+				std::cerr << "Showing help message\n";
+				print_help(options);
+				return 0;
+			}
+
+			std::string fasta_fname = result["reference"].as<std::string>();
+			std::string output_fname = result["output"].as<std::string>();
+
+			if (fasta_fname.size() == 0) {
+				std::cerr << "Provide fasta input\n"; 
+				print_help(options);
+				return 1;
+			}
+			if (output_fname.size() == 0) {
+				std::cerr << "Provide output filename\n"; 
+				print_help(options);
+				return 1;
+			}
+			uint64_t klen = result["klen"].as<uint64_t>();
+			uint64_t size = result["size"].as<uint64_t>();
+			uint64_t seqlen = result["seqlen"].as<uint64_t>();
+			uint64_t nhash = result["nhash"].as<uint64_t>();
+			std::string output = result["output"].as<std::string>();
+			Bloom::Filter blmf = Bloom::Filter(size, klen, nhash);
+			blmf.addFasta(fasta_fname, seqlen);
+			blmf.write(output_fname);
+			Bloom::Filter blmf2 = Bloom::Filter(output_fname);
+
+			return 0;
+		}
+	}
+
+	namespace BloomSearch {
+		void print_help(const cxxopts::Options& options) {
+			std::cerr << options.help();
+		}
+		int run(int argc, char** argv) {
+
+			cxxopts::Options options("bloom-search", "Search in Bloom's filter");
+			options.add_options()
+				("b,bloom", "Bloom filter", cxxopts::value<std::string>())
+				("s,sequence", "Kmer length to use for filter", cxxopts::value<std::string>())
+				("h,help", "Help message");
+
+			if (argc < 3) {
+				print_help(options);
+				return 0;
+			}
+			auto result = options.parse(argc-1, argv+1);
+			std::string seq = result["sequence"].as<std::string>();
+			std::string bloom_filter_name = result["bloom"].as<std::string>();
+
+			Bloom::Filter bloom_filter = Bloom::Filter(bloom_filter_name);
+			size_t hits = bloom_filter.searchSeq(seq);
+
+			std::cout << "Kmers matching: " << hits << '\n';
+			return 0;
+		}
+	}
 }
 
 void print_cmd_usage() {
@@ -109,17 +192,19 @@ void print_cmd_usage() {
 	std::cerr << "  paramer <COMMAND>\n";
 	std::cerr << '\n';
 	std::cerr << "  where command is:\n";
-	std::cerr << "      mask\tmask fasta file with kraken2 file\n";
+	std::cerr << "      mask\t\tmask fasta file with kraken2 file\n";
+	std::cerr << "      bloom-build\tbuild Bloom's filter\n";
+	std::cerr << "      bloom-search\tsearch in Bloom's filter\n";
 }
 
 int main(int argc, char** argv) {
 
-	std::string templ_str = "ATCGTctagtagctgcatgCTCAGCGTCNGACGACGTAcgatcgagCAGTCnATCGATgatgatgagaCGAaA";
-	Fasta::Rec fr = Fasta::Rec("test_id", templ_str);
-	auto res = fr.splitOnMask();
-	for (const auto& r: res) {
-		r.print();
-	}
+	//std::string templ_str = "ATCGTctagtagctgcatgCTCAGCGTCNGACGACGTAcgatcgagCAGTCnATCGATgatgatgagaCGAaA";
+	//Fasta::Rec fr = Fasta::Rec("test_id", templ_str);
+	//auto res = fr.splitOnMask();
+	//for (const auto& r: res) {
+		//r.print();
+	//}
 	//while (reg.first != templ_str.size()) {
 		////std::cout << reg.first << ".." << reg.second << '\n';
 		//std::cout << templ_str.substr(reg.first, reg.second - reg.first) << '\n';
@@ -128,13 +213,23 @@ int main(int argc, char** argv) {
 	//for (const auto& s: splitted) {
 		//std::cout << s << '\n';
 	//}
-	return EXIT_SUCCESS;
+	//return EXIT_SUCCESS;
 	if (argc < 2) {
 		print_cmd_usage();
 		return 0;
 	}
+
 	if (std::string(argv[1]) == "mask") {
 		Cmd::Mask::run(argc, argv);
+		return 0;
+	} else if (std::string(argv[1]) == "bloom-build") {
+		Cmd::BloomBuild::run(argc, argv);
+		return 0;
+	} else if (std::string(argv[1]) == "bloom-search") {
+		Cmd::BloomSearch::run(argc, argv);
+		return 0;
+	} else {
+		print_cmd_usage();
 		return 0;
 	}
 
