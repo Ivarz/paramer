@@ -26,8 +26,6 @@ namespace Cmd {
 			std::optional<Fasta::Rec> fa_rec = Fasta::nextRecord(gzrfa);
 			std::vector<std::optional<Kraken2::Rec>> k2_recs;
 
-			Kraken2::nextRecord(k2_readers[0]);
-
 			for (auto& gzkr2: k2_readers) {
 				k2_recs.push_back(Kraken2::nextRecord(gzkr2));
 			}
@@ -35,17 +33,19 @@ namespace Cmd {
 			std::vector<Fasta::Rec> results;
 
 			while (fa_rec) {
+				std::cerr << "Processing " << fa_rec->seq_id << '\n';
 				for (const auto& k2_rec: k2_recs) {
 					if (k2_rec) {
 						size_t min_size = fa_rec->seq_id.size() > k2_rec->seq_id.size()
 							? k2_rec->seq_id.size()
 							: fa_rec->seq_id.size();
 						if (fa_rec->seq_id.substr(0, min_size) == k2_rec->seq_id.substr(0, min_size)) {
+							std::cerr << "Processing " << fa_rec->seq_id << '\n';
 							fa_rec->softmaskWithKraken2(*k2_rec);
 							results.push_back(*fa_rec);
 						} else {
 							std::cerr << "Ids do not match\n";
-							std::cerr << fa_rec->seq_id.substr(min_size) << "\t" << k2_rec->seq_id.substr(min_size) << '\n';
+							std::cerr << fa_rec->seq_id.substr(0, min_size) << "\t" << k2_rec->seq_id.substr(0, min_size) << '\n';
 						}
 					}
 				}

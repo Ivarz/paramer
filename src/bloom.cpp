@@ -56,8 +56,6 @@ namespace Bloom {
 			if (fa_rec) {
 				for (const auto& rec: fa_rec->splitOnMask()) {
 					if (rec.size() >= minsize) {
-						std::cerr << "Adding\n";
-						std::cerr << rec.seq << '\n';
 						addSeq(rec.seq);
 					}
 				}
