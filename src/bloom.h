@@ -1,8 +1,10 @@
 #ifndef BLOOM_H
 #define BLOOM_H
 #include <vector>
+#include <zlib.h>
 #include "seq.h"
 #include "fastx.h"
+
 namespace Bloom {
 	class Filter {
 		public:
@@ -14,6 +16,7 @@ namespace Bloom {
 			size_t searchSeq(const std::string& seq) const;
 			void addFasta(const std::string& fasta_fname, size_t minsize);
 			void write(const std::string& out_fname) const;
+			void writeGz(const std::string& out_fname) const;
 		private:
 			uint64_t filter_size; // filter size in bytes
 			uint64_t kmer_size;

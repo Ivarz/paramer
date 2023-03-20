@@ -151,7 +151,7 @@ namespace Cmd {
 			std::string output = result["output"].as<std::string>();
 			Bloom::Filter blmf = Bloom::Filter(size, klen, nhash);
 			blmf.addFasta(fasta_fname, seqlen);
-			blmf.write(output_fname);
+			blmf.writeGz(output_fname);
 			Bloom::Filter blmf2 = Bloom::Filter(output_fname);
 
 			return 0;
@@ -167,7 +167,7 @@ namespace Cmd {
 			cxxopts::Options options("bloom-search", "Search in Bloom's filter");
 			options.add_options()
 				("b,bloom", "Bloom filter", cxxopts::value<std::string>())
-				("s,sequence", "Kmer length to use for filter", cxxopts::value<std::string>())
+				("s,sequence", "Sequence to search", cxxopts::value<std::string>())
 				("h,help", "Help message");
 
 			if (argc < 3) {
@@ -199,21 +199,6 @@ void print_cmd_usage() {
 
 int main(int argc, char** argv) {
 
-	//std::string templ_str = "ATCGTctagtagctgcatgCTCAGCGTCNGACGACGTAcgatcgagCAGTCnATCGATgatgatgagaCGAaA";
-	//Fasta::Rec fr = Fasta::Rec("test_id", templ_str);
-	//auto res = fr.splitOnMask();
-	//for (const auto& r: res) {
-		//r.print();
-	//}
-	//while (reg.first != templ_str.size()) {
-		////std::cout << reg.first << ".." << reg.second << '\n';
-		//std::cout << templ_str.substr(reg.first, reg.second - reg.first) << '\n';
-		//reg = Dna::nextToggleMaskedRegion(templ_str, reg.second);
-	//}
-	//for (const auto& s: splitted) {
-		//std::cout << s << '\n';
-	//}
-	//return EXIT_SUCCESS;
 	if (argc < 2) {
 		print_cmd_usage();
 		return 0;

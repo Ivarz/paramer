@@ -15,8 +15,11 @@ namespace Fastq {
 		std::string qual;
 	};
 
+	using Pair = std::pair<Rec, Rec>;
+
 
 	std::optional<Rec> nextRecord(Gz::Reader& gzr);
+	std::optional<Pair> nextRecordPair(Gz::Reader& gzr1, Gz::Reader& gzr2);
 }
 
 namespace Fasta {

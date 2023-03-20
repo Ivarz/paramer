@@ -27,6 +27,16 @@ namespace Fastq {
 			return {};
 		}
 	}
+
+	std::optional<Pair> nextRecordPair(Gz::Reader& gzr1, Gz::Reader& gzr2) {
+		std::optional<Rec> rec1 = nextRecord(gzr1);
+		std::optional<Rec> rec2 = nextRecord(gzr2);
+		if (rec1 && rec2) {
+			return std::pair<Rec, Rec>(*rec1, *rec2);
+		} else {
+			return {};
+		}
+	}
 }
 
 namespace Fasta {
