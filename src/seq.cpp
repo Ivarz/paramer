@@ -47,18 +47,22 @@ namespace Dna {
 		}
 	}
 
+	bool isMasked(char c) {
+		return c == 'a' || c == 't' || c == 'g' || c == 'c' || c == 'N' || c == 'n';
+
+	}
 	std::pair<size_t,size_t> nextToggleMaskedRegion(const std::string& seq, size_t beg) {
-		if (beg == seq.size()) {
-			return std::pair<size_t,size_t>(beg, beg);
+		if (beg >= seq.size()) {
+			return std::pair<size_t,size_t>(seq.size(), seq.size());
 		}
 		char c = seq[beg];
-		bool curr_mask = c == 'a' || c == 't' || c == 'g' || c == 'c' || c == 'N' || c == 'n';
+		bool curr_mask = isMasked(c);
 		bool prev_mask = curr_mask;
 		size_t i = beg;
 		while (curr_mask == prev_mask && i < seq.size()) {
 			prev_mask = curr_mask;
 			c = seq[i];
-			curr_mask = c == 'a' || c == 't' || c == 'g' || c == 'c' || c == 'N' || c == 'n';
+			curr_mask = isMasked(c);
 			if (prev_mask != curr_mask){
 				return std::pair<size_t,size_t>(beg, i);
 			}
