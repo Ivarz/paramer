@@ -14,9 +14,15 @@ bool trimNewlineInplace(std::string& str) {
 
 namespace Gz {
 	Reader::Reader(const std::string& fn) : file_name(fn) {
-		//std::cerr << "gz ctor\n";
 		buffer = new char[buf_size];
-		file_handler = gzopen(file_name.c_str(), "rb");
+		if (std::filesystem::exists(file_name)) {
+			file_handler = gzopen(file_name.c_str(), "rb");
+			state = ReaderState::OK;
+		} else {
+			std::cerr << "File does not exist " << file_name << '\n';
+			file_handler = nullptr; //gzopen(file_name.c_str(), "rb");
+			state = ReaderState::FILENOTFOUND;
+		}
 	}
 
 	Reader::Reader(const Reader& gzr) noexcept {
@@ -44,6 +50,9 @@ namespace Gz {
 		delete[] buffer;
 	}
 	std::string Reader::nextLine() {
+		if (state == ReaderState::FILENOTFOUND) {
+			return "";
+		}
 		auto retval = gzgets(file_handler, buffer, static_cast<int>(buf_size));
 		std::string line(buffer);
 		while (!trimNewlineInplace(line)) {

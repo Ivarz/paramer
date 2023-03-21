@@ -23,10 +23,10 @@ TEST_CASE("Testing Fastq::nextRecord") {
 	CHECK(last_rec->seq == "GGACATCAGATGATATCCCTCGCCTACGGCGCCAAGACATATAAGCTCAAGTTTGGTCACCGCGGCGGAAACCACCCGGTCATGAACCTCGACACCAACAAGATAGAGATAACCTCGCAGAACCACAGCTATGCCGTTGACCCGAAAACG");
 	CHECK(last_rec->qual == "@C,CBA;>E8ECB<<E9?A77>=?F4==@95FAE>,F9DFFF@8EEF?FDA0?E:5D@F)EC<E>A:@,=DEDFCEDADD?D8=DEC@FFD'EFDAFF@FEE;FFC7E:DE9FEBEDFEB>DFDD<99FF>DCDFD<AE=;9ECDEAD84");
 
-	//// loops
-	//Gz::Reader nonexistent_reader("test_data/nonexistent");
-	//auto empty_rec = Fastq::nextRecord(nonexistent_reader);
-	//CHECK(!empty_rec);
+	// loops
+	Gz::Reader nonexistent_reader("test_data/nonexistent");
+	auto empty_rec = Fastq::nextRecord(nonexistent_reader);
+	CHECK(!empty_rec);
 }
 
 TEST_CASE("Testing Fastq::nextRecordPair") {

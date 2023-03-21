@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <algorithm>
+#include <filesystem>
 
 bool trimNewlineInplace(std::string& str);
 
@@ -12,6 +13,7 @@ namespace Gz {
 		OK,
 		DONE,
 		ERROR,
+		FILENOTFOUND,
 	};
 
 	class Reader {
