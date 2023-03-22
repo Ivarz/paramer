@@ -8,12 +8,10 @@
 #include "bloom.h"
 
 namespace Cmd {
+	void print_help(const cxxopts::Options& options) {
+		std::cerr << options.help();
+	}
 	namespace Mask {
-
-		void print_help(const cxxopts::Options& options) {
-			std::cerr << options.help();
-		}
-
 		std::vector<Fasta::Rec> softmaskFastaWithKraken2(const std::string& fa_fname, const std::vector<std::string>& k2_fnames) {
 
 			Gz::Reader gzrfa(fa_fname);
@@ -104,9 +102,6 @@ namespace Cmd {
 
 	}
 	namespace BloomBuild {
-		void print_help(const cxxopts::Options& options) {
-			std::cerr << options.help();
-		}
 		int run(int argc, char** argv) {
 
 			cxxopts::Options options("bloom-build", "build Bloom's filter");
@@ -159,15 +154,16 @@ namespace Cmd {
 	}
 
 	namespace BloomSearch {
-		void print_help(const cxxopts::Options& options) {
-			std::cerr << options.help();
-		}
 		int run(int argc, char** argv) {
 
 			cxxopts::Options options("bloom-search", "Search in Bloom's filter");
 			options.add_options()
 				("b,bloom", "Bloom filter", cxxopts::value<std::string>())
-				("s,sequence", "Sequence to search", cxxopts::value<std::string>())
+				("s,sequence", "Sequence to search", cxxopts::value<std::string>()->default_value(""))
+				("1,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())
+				("2,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())
+				("c,mincount", "minimum number of matching kmers for hit", cxxopts::value<size_t>()->default_value("50"))
+				("u,unpaired", "Single end reads", cxxopts::value<std::string>())
 				("h,help", "Help message");
 
 			if (argc < 3) {
@@ -179,9 +175,32 @@ namespace Cmd {
 			std::string bloom_filter_name = result["bloom"].as<std::string>();
 
 			Bloom::Filter bloom_filter = Bloom::Filter(bloom_filter_name);
-			size_t hits = bloom_filter.searchSeq(seq);
+			size_t hits = 0;
+			if (seq.size() > 0) { 
+				hits = bloom_filter.searchSeq(seq);
+				std::cout << "Kmers matching: " << hits << '\n';
+			}
 
-			std::cout << "Kmers matching: " << hits << '\n';
+			std::string mates1_fname = result["mates1"].as<std::string>();
+			std::string mates2_fname = result["mates2"].as<std::string>();
+			size_t hit_threshold = result["mincount"].as<size_t>();
+
+			Gz::Reader mates1_reader = Gz::Reader(mates1_fname);
+			Gz::Reader mates2_reader = Gz::Reader(mates2_fname);
+
+			std::optional<Fastq::Pair> curr_rec_pair = Fastq::nextRecordPair(mates1_reader, mates2_reader);
+
+			
+			while (curr_rec_pair) {
+				size_t kmer_hits = bloom_filter.searchFastqPair(*curr_rec_pair);
+				if (kmer_hits >= hit_threshold) {
+					//std::cout << "Kmer hits\t" << kmer_hits << '\n';
+					curr_rec_pair->first.print();
+					curr_rec_pair->second.print();
+				}
+				curr_rec_pair = Fastq::nextRecordPair(mates1_reader, mates2_reader);
+			}
+
 			return 0;
 		}
 	}
@@ -217,18 +236,6 @@ int main(int argc, char** argv) {
 		print_cmd_usage();
 		return 0;
 	}
-
-	////cxxopts::Options options("paramer", "Foo bar");
-	////auto result = options.parse(argc-1, argv+1);
-	//std::string file_name = "sample_data/test.unzipped.1.fq";
-	//Gz::Reader gzr(file_name);
-	//auto fq = Fastq::nextRecord(gzr);
-
-	//while (fq) {
-		//fq->print();
-		//fq = Fastq::nextRecord(gzr);
-	//}
-	
 
 	return 0;
 }

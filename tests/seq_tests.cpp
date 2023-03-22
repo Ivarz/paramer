@@ -38,6 +38,24 @@ TEST_CASE("Testing Dna::softmask") {
 	CHECK(t4 == "AtgC");
 }
 
+TEST_CASE("Testing Dna::unmask") {
+	std::string t1 = "";
+	Dna::unmask(t1,0,0);
+	CHECK(t1 == "");
+
+	std::string t2 = "atgc";
+	Dna::unmask(t2,1,1);
+	CHECK(t2 == "atgc");
+
+	std::string t3 = "atgc";
+	Dna::unmask(t3,1,2);
+	CHECK(t3 == "aTgc");
+
+	std::string t4 = "atgc";
+	Dna::unmask(t4,1,3);
+	CHECK(t4 == "aTGc");
+}
+
 TEST_CASE("Testing Dna::nextToggleMaskedRegion") {
 
 	auto t1 = Dna::nextToggleMaskedRegion("", 0);

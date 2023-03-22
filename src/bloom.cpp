@@ -49,6 +49,12 @@ namespace Bloom {
 		return kmer_hits;
 	}
 
+	size_t Filter::searchFastqPair(const Fastq::Pair& fq_pair) const {
+		size_t kmer_hits = searchSeq(fq_pair.first.seq);
+		kmer_hits += searchSeq(fq_pair.second.seq);
+		return kmer_hits;
+	}
+
 	void Filter::addFasta(const std::string& fasta_fname, size_t minsize) {
 		Gz::Reader gzrfa(fasta_fname);
 		std::optional<Fasta::Rec> fa_rec = Fasta::nextRecord(gzrfa);
@@ -63,6 +69,7 @@ namespace Bloom {
 			fa_rec = Fasta::nextRecord(gzrfa);
 		}
 	}
+
 
 	void Filter::write(const std::string& out_fname) const {
 		std::ofstream outfh(out_fname, std::ios::out | std::ios::binary);

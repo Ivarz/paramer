@@ -39,10 +39,19 @@ namespace Dna {
 		}
 		return result;
 	}
+
 	void softmask(std::string& seq, size_t beg, size_t end) {
 		for (size_t i=beg; i<end; i++){
 			if (seq[i] < 97) {
 				seq[i] += 32;
+			}
+		}
+	}
+
+	void unmask(std::string& seq, size_t beg, size_t end) {
+		for (size_t i=beg; i<end; i++){
+			if (seq[i] >= 97) {
+				seq[i] -= 32;
 			}
 		}
 	}

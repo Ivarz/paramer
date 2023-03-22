@@ -15,6 +15,7 @@ namespace Bloom {
 			void addSeq(const std::string& seq);
 			size_t searchSeq(const std::string& seq) const;
 			void addFasta(const std::string& fasta_fname, size_t minsize);
+			size_t searchFastqPair(const Fastq::Pair& fq_pair) const;
 			void write(const std::string& out_fname) const;
 			void writeGz(const std::string& out_fname) const;
 		private:
