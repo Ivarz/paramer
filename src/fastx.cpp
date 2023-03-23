@@ -99,4 +99,61 @@ namespace Fasta {
 		}
 		return;
 	}
+
+	std::set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size) {
+		std::set<std::string> result;
+		Gz::Reader fh = Gz::Reader(fname);
+		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
+		while (rec) {
+			for (Fasta::Rec seq: rec->splitOnMask()) {
+				Dna::addKmers(seq.seq, kmer_size, result);
+			}
+			std::cerr << "Loaded kmers " << result.size() << '\n';
+			rec = Fasta::nextRecord(fh);
+		}
+		return result;
+	}
+
+	std::set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size) {
+		std::set<uint64_t> result;
+		size_t hash_n = 1;
+		Gz::Reader fh = Gz::Reader(fname);
+
+		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
+		while (rec) {
+			for (Fasta::Rec seq: rec->splitOnMask()) {
+				if (seq.size() >= kmer_size) {
+					ntHashIterator itr(seq.seq, hash_n, kmer_size);
+					while (itr != itr.end()) {
+						uint64_t hash_value = (*itr)[0];
+						result.insert(hash_value);
+						++itr;
+					}
+				}
+			}
+			rec = Fasta::nextRecord(fh);
+		}
+		return result;
+	}
+
+	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::set<uint64_t>& kmers) {
+		Gz::Reader fh = Gz::Reader(fname);
+		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
+		size_t hash_n = 1;
+		while (rec) {
+			for (Fasta::Rec seq: rec->splitOnMask()) {
+				std::cerr << "Dropping from " << seq.seq_id << '\n';
+				if (seq.size() >= kmer_size) {
+					ntHashIterator itr(seq.seq, hash_n, kmer_size);
+					while (itr != itr.end()) {
+						uint64_t hash_value = (*itr)[0];
+						kmers.erase(hash_value);
+						++itr;
+					}
+				}
+			}
+			rec = Fasta::nextRecord(fh);
+		}
+	}
+
 }

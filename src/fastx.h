@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "seq.h"
 #include "kraken2.h"
+#include <ntHashIterator.hpp>
 
 
 namespace Fastq {
@@ -36,6 +37,9 @@ namespace Fasta {
 			std::string seq;
 	};
 	std::optional<Rec> nextRecord(Gz::Reader& gzr);
+	std::set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size);
+	std::set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size);
+	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::set<uint64_t>& kmers);
 }
 
 #endif

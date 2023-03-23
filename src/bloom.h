@@ -2,6 +2,8 @@
 #define BLOOM_H
 #include <vector>
 #include <zlib.h>
+#include <fstream>
+#include <ntHashIterator.hpp>
 #include "seq.h"
 #include "fastx.h"
 

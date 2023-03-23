@@ -6,7 +6,7 @@ namespace Dna {
 		if (seq.size() == 0) {
 			return result;
 		}
-		for (int i = 0; i < seq.size(); i++) {
+		for (size_t i = 0; i < seq.size(); i++) {
 			int res_idx = seq.size()-1 - i;
 			switch (seq[i]) {
 				case 'A':
@@ -53,6 +53,20 @@ namespace Dna {
 			if (seq[i] >= 97) {
 				seq[i] -= 32;
 			}
+		}
+	}
+
+	void addKmers(const std::string& seq, size_t size, std::set<std::string>& kmers) {
+		if (seq.size() < size) {
+			return; 
+		}
+		size_t beg = 0;
+		size_t end = beg+size;
+		while (end < seq.size()) {
+			std::string kmer = seq.substr(beg, size);
+			kmers.insert(kmer);
+			beg++;
+			end = beg+size;
 		}
 	}
 

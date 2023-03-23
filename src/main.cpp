@@ -101,6 +101,46 @@ namespace Cmd {
 		}
 
 	}
+	namespace MaskFasta {
+		// dummy command to be merged with mask command
+		int run(int argc, char** argv) {
+
+			cxxopts::Options options("mask-fasta", "Mask fasta file with kmers found in another fasta file ");
+			options.add_options()
+				("f,fasta", "Fasta file to mask", cxxopts::value<std::string>())
+				("r,reference", "Fasta file which kmers to use", cxxopts::value<std::vector<std::string>>())
+				("h,help", "Help message");
+
+			if (argc < 3) {
+				print_help(options);
+				return 0;
+			}
+
+			auto result = options.parse(argc-1, argv+1);
+			if (result.count("help")) {
+				std::cerr << "Showing help message\n";
+				print_help(options);
+				return 0;
+			}
+
+			std::string fasta_fname = result["fasta"].as<std::string>();
+			std::vector<std::string> reference_fnames = result["reference"].as<std::vector<std::string>>();
+			size_t kmer_size = 31;
+
+
+			std::set<uint64_t> fa_kmers = Fasta::loadUnmaskedKmerHashes(fasta_fname, kmer_size);
+			std::cerr << "kmer hashes loaded: " << fa_kmers.size() << '\n';
+			
+			std::cerr << "Dropping hashes found in refs\n";
+			for (std::string ref_name: reference_fnames) {
+				Fasta::dropKmerHashesFound(ref_name, kmer_size, fa_kmers);
+			}
+			std::cerr << "kmer hashes kept: " << fa_kmers.size() << '\n';
+
+			return 0;
+		}
+	}
+
 	namespace BloomBuild {
 		int run(int argc, char** argv) {
 
@@ -212,6 +252,7 @@ void print_cmd_usage() {
 	std::cerr << '\n';
 	std::cerr << "  where command is:\n";
 	std::cerr << "      mask\t\tmask fasta file with kraken2 file\n";
+	std::cerr << "      mask-fasta\tmask fasta file with kmers found in another fasta file\n";
 	std::cerr << "      bloom-build\tbuild Bloom's filter\n";
 	std::cerr << "      bloom-search\tsearch in Bloom's filter\n";
 }
@@ -225,6 +266,9 @@ int main(int argc, char** argv) {
 
 	if (std::string(argv[1]) == "mask") {
 		Cmd::Mask::run(argc, argv);
+		return 0;
+	} else if (std::string(argv[1]) == "mask-fasta") {
+		Cmd::MaskFasta::run(argc, argv);
 		return 0;
 	} else if (std::string(argv[1]) == "bloom-build") {
 		Cmd::BloomBuild::run(argc, argv);

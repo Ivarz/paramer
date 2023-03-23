@@ -1,5 +1,3 @@
-#include <fstream>
-#include <ntHashIterator.hpp>
 #include "bloom.h"
 
 namespace Bloom {
