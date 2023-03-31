@@ -61,3 +61,22 @@ TEST_CASE("Testing Fastq::nextRecordPair") {
 	CHECK(last_rec->second.qual == "FFFAFAFBEFE6DDEFEFF7FE3F@D@AFD@AED>FBFDDFFBF?A0:FFFEFAFEAF90F?EBFFFFCE?EFDE8FFCFAD81ACFGBDBCF:;FE<BBA7BF4F1D3@=CBFF>FCECF/E=D-F2?F-F7F>=F99-FEF9@F=5E=");
 }
 
+TEST_CASE("testing hasing") {
+	std::string t1 = "nnaCAGCAGTAAAAGCTAAAAGAACGAATACCACaga";
+	size_t hash_n = 1;
+	size_t kmer_size = 31;
+	ntHashIterator itr(t1, hash_n, kmer_size);
+	++itr;
+	++itr;
+	++itr;
+	uint64_t hash_value = (*itr)[0];
+	//CHECK(hash_value == 1489897631772959496);
+	std::string t2 = "AAAcagcagtaaaagctaaaagaacgaataccacAGA";
+	ntHashIterator itr2(t2, hash_n, kmer_size);
+	++itr2;
+	++itr2;
+	++itr2;
+	uint64_t t2_hash_value = (*itr2)[0];
+	CHECK(t2_hash_value == 1489897631772959496);
+
+}

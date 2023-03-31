@@ -7,13 +7,25 @@
 #include <ntHashIterator.hpp>
 
 
+enum class FileFormat {
+	Fasta,
+	Fastq,
+};
+
+namespace Fastx {
+	std::optional<FileFormat> inferFileFormat(const std::string& fname);
+}
+
 namespace Fastq {
-	struct Rec {
-		Rec(const std::string& sid, const std::string& sq, const std::string& q);
-		void print() const;
-		std::string seq_id;
-		std::string seq;
-		std::string qual;
+	class Rec {
+		public:
+			Rec(const std::string& sid, const std::string& sq, const std::string& q);
+			void print() const;
+			size_t size() const {return seq.size();}
+			std::vector<Rec> splitOnMask() const;
+			std::string seq_id;
+			std::string seq;
+			std::string qual;
 	};
 
 	using Pair = std::pair<Rec, Rec>;
@@ -37,9 +49,12 @@ namespace Fasta {
 			std::string seq;
 	};
 	std::optional<Rec> nextRecord(Gz::Reader& gzr);
-	std::set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size);
-	std::set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size);
-	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::set<uint64_t>& kmers);
+	std::unordered_set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size);
+	std::unordered_set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size);
+	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::unordered_set<uint64_t>& kmers);
+	std::vector<Rec> softmaskNotInKmerHashes(const std::string& fname
+											 , size_t kmer_size
+											 , const std::unordered_set<uint64_t>& kmers);
 }
 
 #endif

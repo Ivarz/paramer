@@ -56,7 +56,7 @@ namespace Dna {
 		}
 	}
 
-	void addKmers(const std::string& seq, size_t size, std::set<std::string>& kmers) {
+	void addKmers(const std::string& seq, size_t size, std::unordered_set<std::string>& kmers) {
 		if (seq.size() < size) {
 			return; 
 		}
@@ -95,10 +95,6 @@ namespace Dna {
 	}
 
 	std::vector<std::string> splitOnMask(const std::string& seq) {
-		size_t beg = 0;
-		size_t end = 0;
-		bool masked = false;
-		bool prev_masked = masked;
 		std::vector<std::string> result;
 
 		std::pair<size_t, size_t> reg = Dna::nextToggleMaskedRegion(seq, 0);
@@ -112,5 +108,29 @@ namespace Dna {
 		}
 		
 		return result;
+	}
+	std::vector<std::pair<SeqInterval, std::string>> splitOnMaskWithInterval(const std::string& seq) {
+		std::vector<std::pair<SeqInterval, std::string>> result;
+
+		std::pair<size_t, size_t> reg = Dna::nextToggleMaskedRegion(seq, 0);
+
+		while (reg.first != seq.size()) {
+			std::string curr_seq = seq.substr(reg.first, reg.second - reg.first);
+			if (curr_seq.size() > 0 && (curr_seq[0] < 97) && curr_seq[0] != 'N') {
+				result.push_back(std::pair<SeqInterval, std::string>(reg, curr_seq));
+			}
+			reg = Dna::nextToggleMaskedRegion(seq, reg.second);
+		}
+
+		return result;
+	}
+
+	bool hasMasked(const std::string& seq) {
+		for (const char c: seq) {
+			if (isMasked(c)) {
+				return true;
+			}
+		}
+		return false;
 	}
 }

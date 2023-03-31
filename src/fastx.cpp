@@ -1,5 +1,18 @@
 #include "fastx.h"
 
+namespace Fastx {
+	std::optional<FileFormat> inferFileFormat(const std::string& fname) {
+		Gz::Reader reader = Gz::Reader(fname);
+		std::string curr_line = reader.nextLine();
+		if (curr_line[0] == '>') {
+			return FileFormat::Fasta;
+		} else if (curr_line[0] == '@') {
+			return FileFormat::Fastq;
+		} else {
+			return {};
+		}
+	}
+}
 namespace Fastq {
 
 	Rec::Rec(const std::string& sid, const std::string& sq, const std::string& q) :
@@ -36,6 +49,16 @@ namespace Fastq {
 		} else {
 			return {};
 		}
+	}
+
+	std::vector<Rec> Rec::splitOnMask() const {
+		std::vector<Rec> result;
+		std::vector<std::string> split_seqs = Dna::splitOnMask(seq);
+		for (size_t i = 0; i < split_seqs.size(); i++) {
+			std::string curr_seq_id = seq_id + "_" + std::to_string(i);
+			result.emplace_back(curr_seq_id, split_seqs[i], "");
+		}
+		return result;
 	}
 }
 
@@ -100,8 +123,8 @@ namespace Fasta {
 		return;
 	}
 
-	std::set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size) {
-		std::set<std::string> result;
+	std::unordered_set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size) {
+		std::unordered_set<std::string> result;
 		Gz::Reader fh = Gz::Reader(fname);
 		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
 		while (rec) {
@@ -114,8 +137,8 @@ namespace Fasta {
 		return result;
 	}
 
-	std::set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size) {
-		std::set<uint64_t> result;
+	std::unordered_set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size) {
+		std::unordered_set<uint64_t> result;
 		size_t hash_n = 1;
 		Gz::Reader fh = Gz::Reader(fname);
 
@@ -123,11 +146,19 @@ namespace Fasta {
 		while (rec) {
 			for (Fasta::Rec seq: rec->splitOnMask()) {
 				if (seq.size() >= kmer_size) {
+					//std::cerr << seq.seq <<'\n';
 					ntHashIterator itr(seq.seq, hash_n, kmer_size);
+					size_t beg = 0;
 					while (itr != itr.end()) {
 						uint64_t hash_value = (*itr)[0];
+						std::string curr_seq = seq.seq.substr(beg, kmer_size);
+						// std::cerr << curr_seq << '\t' << hash_value << '\n';
+						// if (curr_seq == "CAGCAGTAAAAGCTAAAAGAACGAATACCAC" ) {
+						// 	std::cerr << curr_seq << '\t' << hash_value << '\n';
+						// }
 						result.insert(hash_value);
 						++itr;
+						++beg;
 					}
 				}
 			}
@@ -136,7 +167,7 @@ namespace Fasta {
 		return result;
 	}
 
-	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::set<uint64_t>& kmers) {
+	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::unordered_set<uint64_t>& kmers) {
 		Gz::Reader fh = Gz::Reader(fname);
 		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
 		size_t hash_n = 1;
@@ -156,4 +187,45 @@ namespace Fasta {
 		}
 	}
 
+	std::vector<Rec> softmaskNotInKmerHashes(const std::string& fname
+											 , size_t kmer_size
+											 , const std::unordered_set<uint64_t>& kmers) {
+
+		Gz::Reader fh = Gz::Reader(fname);
+		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
+		size_t hash_n = 1;
+		std::vector<Rec> results;
+
+		while (rec) {
+			for (auto split_rec: Dna::splitOnMaskWithInterval(rec->seq)) {
+				if (split_rec.second.size() >= kmer_size) {
+					ntHashIterator itr(split_rec.second, hash_n, kmer_size);
+					size_t global_beg = split_rec.first.first;
+					size_t local_beg = 0;
+					while (itr != itr.end()) {
+						uint64_t hash_value = (*itr)[0];
+						// std::cerr << "Processing " << rec->seq_id
+						// 		<< '\t' << local_beg  << " .. " << local_beg+kmer_size
+						// 		<< '\t' << split_rec.second.substr(local_beg, kmer_size)
+						// 		<< '\t' << hash_value << '\n';
+						if (!kmers.count(hash_value)) {
+							//if (hash_value == 4427754962955041642 || hash_value == 1489897631772959496) {
+								std::cerr << "Masking " << rec->seq_id
+										<< '\t' << local_beg  << " .. " << local_beg+kmer_size
+										<< '\t' << rec->seq.substr(global_beg+local_beg, kmer_size)
+										<< '\t' << split_rec.second.substr(local_beg, kmer_size)
+										<< '\t' << hash_value << '\n';
+							//}
+							Dna::softmask(rec->seq, global_beg+local_beg, global_beg+local_beg+kmer_size);
+						}
+						++itr;
+						++local_beg;
+					}
+ 				}
+			}
+			results.push_back(*rec);
+			rec = Fasta::nextRecord(fh);
+		}
+		return results;
+	}
 }
