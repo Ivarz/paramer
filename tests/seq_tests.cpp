@@ -1,3 +1,4 @@
+#include <string>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #include "seq.h"
@@ -142,3 +143,14 @@ TEST_CASE("Testing Dna::splitOnMask") {
 
 }
 
+TEST_CASE("Testing Dna::canonincalKmer") {
+	std::string t0 = "";
+	std::string t0_rc = Dna::revcom(t0);
+	CHECK(Dna::canonicalKmer(t0) == t0);
+	std::string t1 = "ATGCATCGATCG";
+	std::string t1_rc = Dna::revcom(t1);
+	CHECK(Dna::canonicalKmer(t1) == t1);
+	std::string t2 = "GCATCGATCGATCGATGG";
+	std::string t2_rc = Dna::revcom(t2);
+	CHECK(Dna::canonicalKmer(t2) == t2_rc);
+}

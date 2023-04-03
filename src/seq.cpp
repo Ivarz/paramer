@@ -1,4 +1,6 @@
 #include "seq.h"
+#include <algorithm>
+#include <iostream>
 
 namespace Dna {
 	std::string revcom(const std::string& seq) {
@@ -132,5 +134,15 @@ namespace Dna {
 			}
 		}
 		return false;
+	}
+
+	std::string canonicalKmer(const std::string &kmer) {
+		std::string rc = revcom(kmer);
+		bool origCanonical = std::lexicographical_compare(
+					kmer.cbegin()
+					, kmer.cend()
+					, rc.cbegin()
+					, rc.cend());
+		return origCanonical ? kmer : rc;
 	}
 }

@@ -5,6 +5,7 @@
 #include <vector>
 #include <set>
 #include <unordered_set>
+#include <algorithm>
 
 namespace Dna {
 	using SeqInterval = std::pair<size_t, size_t>;
@@ -18,6 +19,7 @@ namespace Dna {
 	std::vector<std::string> splitOnMask(const std::string& seq);
 	std::vector<std::pair<SeqInterval, std::string>> splitOnMaskWithInterval(const std::string& seq);
 	bool hasMasked(const std::string& seq);
+	std::string canonicalKmer(const std::string& kmer);
 }
 
 #endif
