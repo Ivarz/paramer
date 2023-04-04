@@ -1,6 +1,7 @@
 #include "seq.h"
 #include <algorithm>
 #include <iostream>
+#include "ntHashIterator.hpp"
 
 namespace Dna {
 	std::string revcom(const std::string& seq) {
@@ -144,5 +145,41 @@ namespace Dna {
 					, rc.cbegin()
 					, rc.cend());
 		return origCanonical ? kmer : rc;
+	}
+
+	std::vector<uint64_t> getHashes(const std::string& seq, size_t kmer_size, size_t hash_n) {
+		std::vector<uint64_t> results;
+		ntHashIterator itr(seq, hash_n, kmer_size);
+		while (itr != itr.end()) {
+			for (size_t i = 0; i < hash_n; i++){
+				size_t hash_value = (*itr)[i];
+				results.push_back(hash_value);
+			}
+			++itr;
+		}
+		return results;
+	}
+	void softmaskNotInKmerHashes(std::string& seq, const std::unordered_set<uint64_t>& kmer_hashes, size_t kmer_size) {
+		size_t hash_n = 1;
+		for (auto split_rec: Dna::splitOnMaskWithInterval(seq)) {
+			if (split_rec.second.size() >= kmer_size) {
+				ntHashIterator itr(split_rec.second, hash_n, kmer_size);
+				size_t global_beg = split_rec.first.first;
+				size_t local_beg = 0;
+				while (itr != itr.end()) {
+					uint64_t hash_value = (*itr)[0];
+					if (!kmer_hashes.count(hash_value)) {
+							//std::cerr << "Masking " << rec->seq_id
+									//<< '\t' << local_beg  << " .. " << local_beg+kmer_size
+									//<< '\t' << rec->seq.substr(global_beg+local_beg, kmer_size)
+									//<< '\t' << split_rec.second.substr(local_beg, kmer_size)
+									//<< '\t' << hash_value << '\n';
+						Dna::softmask(seq, global_beg+local_beg, global_beg+local_beg+kmer_size);
+					}
+					++itr;
+					++local_beg;
+				}
+			 }
+		}
 	}
 }

@@ -52,9 +52,10 @@ namespace Fasta {
 	std::unordered_set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size);
 	std::unordered_set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size);
 	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::unordered_set<uint64_t>& kmers);
-	std::vector<Rec> softmaskNotInKmerHashes(const std::string& fname
-											 , size_t kmer_size
-											 , const std::unordered_set<uint64_t>& kmers);
+	void loadSoftmaskAndPrint(const std::string& fasta_fname
+			, const std::vector<std::string>& kraken2_fnames
+			, const std::vector<std::string>& reference_fnames
+			, size_t kmer_size = 31);
 }
 
 #endif

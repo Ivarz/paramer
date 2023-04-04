@@ -1,4 +1,5 @@
 #include "bloom.h"
+#include "bit_lookup.h"
 
 namespace Bloom {
 	void Filter::addSeq(const std::string& seq) {
@@ -162,5 +163,12 @@ namespace Bloom {
 
 		// Close the file
 		infh.close();
+	}
+	size_t Filter::setBitsCount() const {
+		size_t count = 0;
+		for (size_t i=0; i < size(); i++) {
+			count += BitLookup::BIT_COUNT[bytevec[i]];
+		}
+		return count;
 	}
 }

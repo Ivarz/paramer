@@ -187,45 +187,69 @@ namespace Fasta {
 		}
 	}
 
-	std::vector<Rec> softmaskNotInKmerHashes(const std::string& fname
-											 , size_t kmer_size
-											 , const std::unordered_set<uint64_t>& kmers) {
+	bool idsMatch(const std::string& id1,  const std::string& id2) {
+		size_t min_size = std::min(id1.size(), id2.size());
+		return id1.substr(0, min_size) == id2.substr(0, min_size);
+	}
 
-		Gz::Reader fh = Gz::Reader(fname);
-		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
-		size_t hash_n = 1;
-		std::vector<Rec> results;
+	void loadSoftmaskAndPrint(const std::string& fasta_fname
+			, const std::vector<std::string>& kraken2_fnames
+			, const std::vector<std::string>& reference_fnames
+			, size_t kmer_size
+			) {
 
-		while (rec) {
-			for (auto split_rec: Dna::splitOnMaskWithInterval(rec->seq)) {
-				if (split_rec.second.size() >= kmer_size) {
-					ntHashIterator itr(split_rec.second, hash_n, kmer_size);
-					size_t global_beg = split_rec.first.first;
-					size_t local_beg = 0;
-					while (itr != itr.end()) {
-						uint64_t hash_value = (*itr)[0];
-						// std::cerr << "Processing " << rec->seq_id
-						// 		<< '\t' << local_beg  << " .. " << local_beg+kmer_size
-						// 		<< '\t' << split_rec.second.substr(local_beg, kmer_size)
-						// 		<< '\t' << hash_value << '\n';
-						if (!kmers.count(hash_value)) {
-							//if (hash_value == 4427754962955041642 || hash_value == 1489897631772959496) {
-								std::cerr << "Masking " << rec->seq_id
-										<< '\t' << local_beg  << " .. " << local_beg+kmer_size
-										<< '\t' << rec->seq.substr(global_beg+local_beg, kmer_size)
-										<< '\t' << split_rec.second.substr(local_beg, kmer_size)
-										<< '\t' << hash_value << '\n';
-							//}
-							Dna::softmask(rec->seq, global_beg+local_beg, global_beg+local_beg+kmer_size);
-						}
-						++itr;
-						++local_beg;
-					}
- 				}
-			}
-			results.push_back(*rec);
-			rec = Fasta::nextRecord(fh);
+		Gz::Reader gzrfa = Gz::Reader(fasta_fname);
+		std::vector<Gz::Reader> k2_readers;
+
+		for (const auto &fn : kraken2_fnames) {
+			k2_readers.emplace_back(fn);
 		}
-		return results;
+
+		std::optional<Fasta::Rec> fa_rec = Fasta::nextRecord(gzrfa);
+		std::vector<std::optional<Kraken2::Rec>> k2_recs;
+
+		for (auto &gzkr2 : k2_readers) {
+			k2_recs.push_back(Kraken2::nextRecord(gzkr2));
+		}
+
+		std::unordered_set<uint64_t> fa_kmers = {};
+		if (reference_fnames.size() > 0) {
+			fa_kmers = loadUnmaskedKmerHashes(fasta_fname, kmer_size);
+			std::cerr << "kmer hashes loaded: " << fa_kmers.size() << '\n';
+			std::cerr << "Dropping hashes found in refs\n";
+			for (std::string ref_name : reference_fnames) {
+				dropKmerHashesFound(ref_name, kmer_size, fa_kmers);
+			}
+			std::cerr << "kmer hashes kept: " << fa_kmers.size() << '\n';
+			std::cerr << "clean target fasta file\n";
+		}
+
+		while (fa_rec) {
+			std::cerr << "Processing " << fa_rec->seq_id << '\n';
+			for (const auto &k2_rec : k2_recs) {
+				if (k2_rec) {
+					if (idsMatch(fa_rec->seq_id, k2_rec->seq_id)) {
+						std::cerr << "Processing " << fa_rec->seq_id << '\n';
+						fa_rec->softmaskWithKraken2(*k2_rec);
+						// results.push_back(*fa_rec);
+				  } else {
+					std::cerr << "Ids do not match\n";
+					std::cerr << fa_rec->seq_id << "\t"
+							  << k2_rec->seq_id << '\n';
+				  }
+				}
+			}
+			if (reference_fnames.size() > 0) {
+				Dna::softmaskNotInKmerHashes(fa_rec->seq, fa_kmers, kmer_size);
+			}
+
+			fa_rec->print();
+			fa_rec = Fasta::nextRecord(gzrfa);
+			k2_recs.clear();
+
+			for (auto &gzkr2 : k2_readers) {
+			  k2_recs.push_back(Kraken2::nextRecord(gzkr2));
+			}
+		}
 	}
 }

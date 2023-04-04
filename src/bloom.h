@@ -2,6 +2,7 @@
 #define BLOOM_H
 #include "fastx.h"
 #include "seq.h"
+#include <cstdint>
 #include <fstream>
 #include <ntHashIterator.hpp>
 #include <vector>
@@ -23,6 +24,11 @@ public:
   void write(const std::string &out_fname) const;
   void writeGz(const std::string &out_fname) const;
   size_t size() const { return bytevec.size(); }
+  uint64_t hashN() const { return hash_n; }
+  uint64_t kmerSize() const { return kmer_size; }
+  size_t setBitsCount() const;
+  uint8_t& at(size_t idx) { return bytevec.at(idx); };
+  uint8_t atCpy(size_t idx) { return bytevec.at(idx); };
 
 private:
   uint64_t filter_size; // filter size in bytes
