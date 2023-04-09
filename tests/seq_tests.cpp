@@ -1,6 +1,8 @@
+#include <string>
 #define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
 #include "doctest.h"
 #include "seq.h"
+#include <iostream>
 
 TEST_CASE("Testing Dna::revcom") {
 	CHECK(Dna::revcom("") == "");
@@ -141,4 +143,28 @@ TEST_CASE("Testing Dna::splitOnMask") {
 	CHECK(t8.size() == 2);
 
 }
+
+TEST_CASE("Testing Dna::canonicalKmer") {
+	std::string t0 = "";
+	std::string t0_rc = Dna::revcom(t0);
+	CHECK(Dna::canonicalKmer(t0) == t0);
+	std::string t1 = "ATGCATCGATCG";
+	std::string t1_rc = Dna::revcom(t1);
+	CHECK(Dna::canonicalKmer(t1) == t1);
+	std::string t2 = "GCATCGATCGATCGATGG";
+	std::string t2_rc = Dna::revcom(t2);
+	CHECK(Dna::canonicalKmer(t2) == t2_rc);
+}
+TEST_CASE("Testing Dna::getHashes") {
+	std::string t1 = "AGTGCGTCGTCGTCGTCAGAGTGAAAACGTG";
+	std::string t1_rc = Dna::revcom(t1);
+	auto t1_hashes = Dna::getHashes(t1, 31, 1);
+	auto t1_hashes_rc = Dna::getHashes(t1_rc, 31, 1);
+	//std::cerr << t1 << '\t' << t1_hashes[0] << '\n';
+	//std::cerr << t1_rc << '\t' << t1_hashes_rc[0] << '\n';
+	CHECK(t1_hashes[0] == t1_hashes_rc[0]);
+}
+
+
+
 
