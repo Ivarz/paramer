@@ -73,12 +73,59 @@ namespace Gz {
 			return line;
 		}
 	}
-	//Writer::Writer(const std::string& fn) {
-		//uint64_t fsize = static_cast<uint64_t>(bytevec.size());
-		//uint64_t k = static_cast<uint64_t>(kmer_size);
-		//uint64_t h = static_cast<uint64_t>(hash_n);
-		//gzwrite(fp, (char*) &fsize, sizeof(fsize));
-		//gzwrite(fp, (char*) &k, sizeof(k));
-		//gzwrite(fp, (char*) &h, sizeof(h));
-	//}
+	std::optional<std::vector<uint8_t>> Reader::bufferedLoad(uint64_t bytes) {
+		int max_bytes = std::numeric_limits<int>::max();
+		size_t offset = 0;
+		uint64_t loaded_bytes = 0;
+		std::vector<uint8_t> bytevec(bytes, 0);
+
+		while (loaded_bytes < bytes) {
+			int buffer_size = std::min(static_cast<uint64_t>(max_bytes), bytes - loaded_bytes);
+			int gzread_output = gzread(file_handler, reinterpret_cast<char*>(bytevec.data()+offset), buffer_size);
+			if (gzread_output < 0) {
+				std::cerr << __FUNCTION__ << " Error " << gzerror(file_handler, &gzread_output)  << "\n";
+				return  {};
+			} else {
+				loaded_bytes += buffer_size;
+				offset = loaded_bytes;
+			}
+		}
+		std::cout << __FUNCTION__ << " loaded_bytes " << loaded_bytes << '\n';
+		return bytevec;
+
+	}
+	int Reader::read(void* buff, size_t bytes) {
+		return gzread(file_handler, reinterpret_cast<char*>(buff), bytes);
+	}
+	Writer::Writer(const std::string& fn) : file_name(fn) {
+		if (!std::filesystem::exists(file_name)) {
+			file_handler = gzopen(file_name.c_str(), "wb");
+		} else {
+			std::cerr << "Warning overwriting " << file_name << '\n';
+			file_handler = gzopen(file_name.c_str(), "wb");
+			//file_handler = nullptr;
+		}
+	}
+	Writer::~Writer() {
+		if (file_handler) {
+			gzclose(file_handler);
+		}
+	}
+	void Writer::bufferedWrite(std::vector<uint8_t>& data) {
+		uint64_t written_bytes = 0;
+		size_t bytes = data.size();
+		int max_bytes = std::numeric_limits<int>::max();
+		size_t offset = 0;
+
+		while (written_bytes < bytes) {
+			int buffer_size = std::min(static_cast<uint64_t>(max_bytes), bytes - written_bytes);
+			int gzwrite_output = gzwrite(file_handler, (char*) &data[offset], buffer_size*sizeof(data.at(offset)));
+			if (gzwrite_output < 0) {
+				return;
+			} else {
+				written_bytes += buffer_size;
+				offset = written_bytes;
+			}
+		}
+	}
 }

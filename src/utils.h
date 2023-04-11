@@ -5,6 +5,8 @@
 #include <iostream>
 #include <algorithm>
 #include <filesystem>
+#include <vector>
+#include <optional>
 
 bool trimNewlineInplace(std::string& str);
 
@@ -25,6 +27,8 @@ namespace Gz {
 			~Reader();
 
 			std::string nextLine();
+			std::optional<std::vector<uint8_t>> bufferedLoad(uint64_t bytes);
+			int read(void* buff, size_t bytes);
 			std::string last_line = "";
 
 		private:
@@ -43,7 +47,9 @@ namespace Gz {
 			Writer(Reader&& other) noexcept;
 			Writer(const Reader&) noexcept;
 			~Writer();
+			void bufferedWrite(std::vector<uint8_t>& data);
 		private:
+			std::string file_name;
 			gzFile file_handler;
 	};
 }

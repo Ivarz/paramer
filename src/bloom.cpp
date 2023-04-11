@@ -161,37 +161,25 @@ namespace Bloom {
 		uint64_t kmer_size = 0;
 		uint64_t hash_n = 0;
 
-		gzFile fp = gzopen(in_fname.c_str(),"rb");
+		Gz::Reader gz_reader(in_fname);
 
-		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
-		gzread(fp, reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
-		gzread(fp, reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
-		gzread(fp, reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
+		gz_reader.read(&filter_size, sizeof(uint64_t));
+		gz_reader.read(&kmer_size, sizeof(uint64_t));
+		gz_reader.read(&hash_n, sizeof(uint64_t));
 
 		// Read the remaining data into a vector<uint8_t>
-		Filter result = Filter(filter_size, kmer_size, hash_n);
-
-		int max_bytes = std::numeric_limits<int>::max();
-		size_t offset = 0;
-		uint64_t loaded_bytes = 0;
-
-		while (loaded_bytes < filter_size) {
-			int buffer_size = std::min(static_cast<uint64_t>(max_bytes), filter_size - loaded_bytes);
-			int gzread_output = gzread(fp, reinterpret_cast<char*>(result.bytevec.data()+offset), buffer_size);
-			//std::cerr << buffer_size << '\t' << loaded_bytes << '\t' << filter_size << '\n';
-			if (gzread_output < 0) {
-				//std::cerr << __FUNCTION__ << " Error " << gzerror(fp, &gzread_output)  << "\n";
-				return  {};
-			} else {
-				loaded_bytes += buffer_size;
-				offset = loaded_bytes;
-			}
+		auto bufload = gz_reader.bufferedLoad(filter_size);
+		if (bufload) {
+			Filter result = Filter(0, 0, 0);
+			result.filter_size = filter_size;
+			result.kmer_size = kmer_size;
+			result.hash_n = hash_n;
+			result.bytevec = std::move(*bufload);
+			return result;
+			//return std::move(result);
+		} else {
+			return {};
 		}
-		std::cout << "loaded_bytes " << loaded_bytes << '\n';
-
-		// Close the file
-		gzclose(fp);
-		return result;
 	}
 
 	size_t Filter::setBitsCount() const {

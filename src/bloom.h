@@ -7,6 +7,7 @@
 #include <ntHashIterator.hpp>
 #include <vector>
 #include <zlib.h>
+#include "utils.h"
 
 namespace Bloom {
 const size_t BITS_IN_BYTE = 8;
