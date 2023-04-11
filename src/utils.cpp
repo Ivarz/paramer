@@ -73,4 +73,12 @@ namespace Gz {
 			return line;
 		}
 	}
+	//Writer::Writer(const std::string& fn) {
+		//uint64_t fsize = static_cast<uint64_t>(bytevec.size());
+		//uint64_t k = static_cast<uint64_t>(kmer_size);
+		//uint64_t h = static_cast<uint64_t>(hash_n);
+		//gzwrite(fp, (char*) &fsize, sizeof(fsize));
+		//gzwrite(fp, (char*) &k, sizeof(k));
+		//gzwrite(fp, (char*) &h, sizeof(h));
+	//}
 }

@@ -205,7 +205,7 @@ int run(int argc, char **argv) {
     }
   }
   blmf.write(output_fname);
-  Bloom::Filter blmf2 = Bloom::Filter(output_fname);
+  Bloom::Filter blmf2 = Bloom::Filter::load(output_fname);
   std::cerr << "size " << blmf2.size() << '\n';
 
   return 0;
@@ -235,7 +235,7 @@ int run(int argc, char **argv) {
   std::string seq = result["sequence"].as<std::string>();
   std::string bloom_filter_name = result["bloom"].as<std::string>();
 
-  Bloom::Filter bloom_filter = Bloom::Filter(bloom_filter_name);
+  Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
   size_t hits = 0;
   if (seq.size() > 0) {
     hits = bloom_filter.searchSeq(seq);
@@ -285,7 +285,7 @@ int run(int argc, char **argv) {
   std::string seq = result["sequence"].as<std::string>();
   std::string bloom_filter_name = result["bloom"].as<std::string>();
 
-  Bloom::Filter bloom_filter = Bloom::Filter(bloom_filter_name);
+  Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
   size_t hits = 0;
   if (seq.size() > 0) {
     hits = bloom_filter.searchSeq(seq);
@@ -332,7 +332,7 @@ int run(int argc, char **argv) {
   std::string seq = result["sequence"].as<std::string>();
   std::string bloom_filter_name = result["bloom"].as<std::string>();
 
-  Bloom::Filter bloom_filter = Bloom::Filter(bloom_filter_name);
+  Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
   size_t hits = 0;
   if (seq.size() > 0) {
     hits = bloom_filter.searchSeq(seq);
@@ -374,7 +374,7 @@ int run(int argc, char **argv) {
 		}
 	    auto result = options.parse(argc - 1, argv + 1);
 		std::string bloom_filter_name = result["bloom"].as<std::string>();
-		Bloom::Filter bloom_filter = Bloom::Filter(bloom_filter_name);
+		Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
 		size_t set_bits = bloom_filter.setBitsCount();
 		std::cerr << "bloom filter size " << bloom_filter.size() << '\n';
 		std::cerr << "set bits " << set_bits << '\n';

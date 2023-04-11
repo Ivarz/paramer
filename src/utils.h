@@ -37,5 +37,14 @@ namespace Gz {
 			ReaderState state = ReaderState::OK;
 
 	};
+	class Writer {
+		public:
+			explicit Writer(const std::string& fn);
+			Writer(Reader&& other) noexcept;
+			Writer(const Reader&) noexcept;
+			~Writer();
+		private:
+			gzFile file_handler;
+	};
 }
 #endif
