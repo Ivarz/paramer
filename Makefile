@@ -10,3 +10,4 @@ test : tests/seq_tests.cpp tests/fastx_tests.cpp tests/utils_tests.cpp
 		$^ src/utils.cpp src/fastx.cpp src/seq.cpp src/kraken2.cpp src/bloom.cpp \
 		-o $@ -lz -O3
 	./test
+	rm test
