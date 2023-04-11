@@ -1,6 +1,5 @@
-#include <fstream>
-#include <ntHashIterator.hpp>
 #include "bloom.h"
+#include "bit_lookup.h"
 
 namespace Bloom {
 	void Filter::addSeq(const std::string& seq) {
@@ -12,6 +11,7 @@ namespace Bloom {
 				uint8_t bucket_value = 1 << (hash_value % ELEMENTS_IN_BUCKET);
 				bytevec[bucket_idx] |= bucket_value;
 				//std::cerr << "-----------------\n";
+				//std::cerr << seq << '\n';
 				//std::cerr << hash_value << '\n';
 				//std::cerr << bucket_idx << '\n';
 				//std::cerr << (size_t) bucket_value << '\n';
@@ -25,6 +25,7 @@ namespace Bloom {
 	size_t Filter::searchSeq(const std::string& seq) const {
 		ntHashIterator itr(seq, hash_n, kmer_size);
 		size_t kmer_hits = 0;
+		
 		while (itr != itr.end()) {
 			size_t hash_hits = 0;
 			for (size_t i = 0; i < hash_n; i++){
@@ -70,6 +71,28 @@ namespace Bloom {
 		}
 	}
 
+	void Filter::addFastq(const std::string& fastq_fname, size_t minsize) {
+		Gz::Reader gzrfq(fastq_fname);
+		std::optional<Fastq::Rec> fq_rec = Fastq::nextRecord(gzrfq);
+		size_t counter = 0;
+		while (fq_rec) {
+			if (fq_rec) {
+				addSeq(fq_rec->seq);
+				//for (const auto& rec: fq_rec->splitOnMask()) {
+					//if (rec.size() >= minsize) {
+						//addSeq(rec.seq);
+					//}
+				//}
+			}
+			fq_rec = Fastq::nextRecord(gzrfq);
+			counter++;
+			if (!(counter % 1000000)) {
+				std::cerr << counter << '\n';
+				std::cerr << fq_rec->seq << '\n';
+			}
+		}
+	}
+
 
 	void Filter::write(const std::string& out_fname) const {
 		std::ofstream outfh(out_fname, std::ios::out | std::ios::binary);
@@ -100,45 +123,52 @@ namespace Bloom {
 		gzclose(fp);
 	}
 
-	Filter::Filter(const std::string& in_fname) {
-		std::cerr << "Loading Filter from " << in_fname << '\n';
-
-		gzFile fp = gzopen(in_fname.c_str(),"rb");
-
-		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
-		gzread(fp, reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
-		gzread(fp, reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
-		gzread(fp, reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
-
-		// Read the remaining data into a vector<uint8_t>
-		bytevec = std::vector<uint8_t>(filter_size);
-		gzread(fp, reinterpret_cast<char*>(bytevec.data()), filter_size);
-
-		std::cerr << "filter_size\t" << filter_size << '\n';
-		std::cerr << "kmer_size\t" << kmer_size << '\n';
-		std::cerr << "hash_n\t" << hash_n << '\n';
-
-		// Close the file
-		gzclose(fp);
-	}
-
 	//Filter::Filter(const std::string& in_fname) {
 		//std::cerr << "Loading Filter from " << in_fname << '\n';
 
+		//gzFile fp = gzopen(in_fname.c_str(),"rb");
+
 		//std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
-		//infh.read(reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
-		//infh.read(reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
-		//infh.read(reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
+		//gzread(fp, reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
+		//gzread(fp, reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
+		//gzread(fp, reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
 
 		//// Read the remaining data into a vector<uint8_t>
 		//bytevec = std::vector<uint8_t>(filter_size);
-		//infh.read(reinterpret_cast<char*>(bytevec.data()), filter_size);
+		//gzread(fp, reinterpret_cast<char*>(bytevec.data()), filter_size);
 
 		//std::cerr << "filter_size\t" << filter_size << '\n';
 		//std::cerr << "kmer_size\t" << kmer_size << '\n';
 		//std::cerr << "hash_n\t" << hash_n << '\n';
 
 		//// Close the file
-		//infh.close();
+		//gzclose(fp);
 	//}
+
+	Filter::Filter(const std::string& in_fname) {
+		std::cerr << "Loading Filter from " << in_fname << '\n';
+
+		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
+		infh.read(reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
+		infh.read(reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
+		infh.read(reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
+
+		// Read the remaining data into a vector<uint8_t>
+		bytevec = std::vector<uint8_t>(filter_size);
+		infh.read(reinterpret_cast<char*>(bytevec.data()), filter_size);
+
+		std::cerr << "filter_size\t" << filter_size << '\n';
+		std::cerr << "kmer_size\t" << kmer_size << '\n';
+		std::cerr << "hash_n\t" << hash_n << '\n';
+
+		// Close the file
+		infh.close();
+	}
+	size_t Filter::setBitsCount() const {
+		size_t count = 0;
+		for (size_t i=0; i < size(); i++) {
+			count += BitLookup::BIT_COUNT[bytevec[i]];
+		}
+		return count;
+	}
 }
