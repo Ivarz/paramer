@@ -2,21 +2,19 @@
 #include "bit_lookup.h"
 
 namespace Bloom {
+	std::pair<size_t, uint8_t> index_value(uint64_t hash_value, size_t filter_size) {
+		uint64_t bit_idx = hash_value % (filter_size*ELEMENTS_IN_BUCKET);
+		uint64_t byte_idx = bit_idx / ELEMENTS_IN_BUCKET;
+		uint8_t byte_value = 1 << (bit_idx % ELEMENTS_IN_BUCKET);
+		return std::pair<size_t, uint8_t>(byte_idx, byte_value);
+	}
 	void Filter::addSeq(const std::string& seq) {
 		ntHashIterator itr(seq, hash_n, kmer_size);
 		while (itr != itr.end()) {
 			for (size_t i = 0; i < hash_n; i++){
-				size_t hash_value = (*itr)[i] % (filter_size*ELEMENTS_IN_BUCKET);
-				size_t bucket_idx = static_cast<size_t>(hash_value / ELEMENTS_IN_BUCKET);
-				uint8_t bucket_value = 1 << (hash_value % ELEMENTS_IN_BUCKET);
-				bytevec[bucket_idx] |= bucket_value;
-				//std::cerr << "-----------------\n";
-				//std::cerr << seq << '\n';
-				//std::cerr << hash_value << '\n';
-				//std::cerr << bucket_idx << '\n';
-				//std::cerr << (size_t) bucket_value << '\n';
-				//std::cerr << (size_t) bytevec[bucket_idx] << '\n';
-				//std::cerr << "-----------------\n";
+				uint64_t hash_value = (*itr)[i];
+				std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
+				bytevec[idx_value.first] |= idx_value.second;
 			}
 			++itr;
 		}
@@ -29,16 +27,9 @@ namespace Bloom {
 		while (itr != itr.end()) {
 			size_t hash_hits = 0;
 			for (size_t i = 0; i < hash_n; i++){
-				size_t hash_value = (*itr)[i] % (filter_size*ELEMENTS_IN_BUCKET);
-				size_t bucket_idx = static_cast<size_t>(hash_value / ELEMENTS_IN_BUCKET);
-				uint8_t bucket_value = 1 << (hash_value % ELEMENTS_IN_BUCKET);
-				//std::cerr << "-----------------\n";
-				//std::cerr << hash_value << '\n';
-				//std::cerr << bucket_idx << '\n';
-				//std::cerr << (size_t) bucket_value << '\n';
-				//std::cerr << (size_t) bytevec[bucket_idx] << '\n';
-				//std::cerr << "-----------------\n";
-				if (bytevec[bucket_idx] & bucket_value) {
+				uint64_t hash_value = (*itr)[i];
+				std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
+				if (bytevec[idx_value.first] & idx_value.second) {
 					hash_hits++;
 				}
 			}

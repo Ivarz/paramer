@@ -9,6 +9,7 @@
 #include <zlib.h>
 
 namespace Bloom {
+const size_t BITS_IN_BYTE = 8;
 class Filter {
 public:
   Filter(uint64_t s, uint64_t k, uint64_t h)
@@ -35,8 +36,6 @@ private:
   uint64_t kmer_size;
   uint64_t hash_n;
   std::vector<uint8_t> bytevec;
-  const size_t ELEMENTS_IN_BUCKET = 8;
-  const size_t MAX_BUCKET_VALUE = 255;
 };
 } // namespace Bloom
 #endif
