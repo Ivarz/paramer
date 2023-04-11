@@ -3,9 +3,9 @@
 
 namespace Bloom {
 	std::pair<size_t, uint8_t> index_value(uint64_t hash_value, size_t filter_size) {
-		uint64_t bit_idx = hash_value % (filter_size*ELEMENTS_IN_BUCKET);
-		uint64_t byte_idx = bit_idx / ELEMENTS_IN_BUCKET;
-		uint8_t byte_value = 1 << (bit_idx % ELEMENTS_IN_BUCKET);
+		uint64_t bit_idx = hash_value % (filter_size*BITS_IN_BYTE);
+		uint64_t byte_idx = bit_idx / BITS_IN_BYTE;
+		uint8_t byte_value = 1 << (bit_idx % BITS_IN_BYTE);
 		return std::pair<size_t, uint8_t>(byte_idx, byte_value);
 	}
 	void Filter::addSeq(const std::string& seq) {
