@@ -1,5 +1,6 @@
 #include "doctest.h"
 #include "bloom.h"
+#include "bit_lookup.h"
 #include <cstdio>
 
 TEST_CASE("Test constructor") {
@@ -7,6 +8,19 @@ TEST_CASE("Test constructor") {
 	CHECK(t1.size() == 1000);
 	CHECK(t1.kmerSize() == 31);
 	CHECK(t1.hashN() == 3);
+}
+
+TEST_CASE("Test bit lookup table") {
+	for (size_t i = 1; i < 256; i++){
+		uint8_t table_value = BitLookup::BIT_COUNT[i];
+		unsigned int calculated_value = 0;
+		size_t n = i;
+		while (n > 0) {
+			n = n & (n-1);
+			calculated_value++;
+		}
+		CHECK(table_value == calculated_value);
+	}
 }
 
 TEST_CASE("Test setBitsCount") {
@@ -43,12 +57,12 @@ TEST_CASE("Test addSeq") {
 TEST_CASE("Test write and load") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 1);
 	t0_bloom.write("test_data/t0.blm");
-	Bloom::Filter t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
+	std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
 	std::remove("test_data/t0.blm");
-	CHECK(t0_bloom_load.size() == 1000);
-	CHECK(t0_bloom_load.setBitsCount() == 0);
-	CHECK(t0_bloom_load.kmerSize() == 31);
-	CHECK(t0_bloom_load.hashN() == 1);
+	CHECK(t0_bloom_load->size() == 1000);
+	CHECK(t0_bloom_load->setBitsCount() == 0);
+	CHECK(t0_bloom_load->kmerSize() == 31);
+	CHECK(t0_bloom_load->hashN() == 1);
 
 	Bloom::Filter t1_bloom = Bloom::Filter(1000, 31, 1);
 	t1_bloom.at(0) = 1;
@@ -57,24 +71,24 @@ TEST_CASE("Test write and load") {
 	t1_bloom.at(10) = 4;
 	t1_bloom.at(999) = 255;
 	t1_bloom.write("test_data/t1.blm");
-	Bloom::Filter t1_bloom_load = Bloom::Filter::load("test_data/t1.blm");
+	std::optional<Bloom::Filter> t1_bloom_load = Bloom::Filter::load("test_data/t1.blm");
 	std::remove("test_data/t1.blm");
-	CHECK(t1_bloom.at(0) == 1);
-	CHECK(t1_bloom.at(3) == 3);
-	CHECK(t1_bloom.at(8) == 2);
-	CHECK(t1_bloom.at(10) == 4);
-	CHECK(t1_bloom.at(999) == 255);
+	CHECK(t1_bloom_load->at(0) == 1);
+	CHECK(t1_bloom_load->at(3) == 3);
+	CHECK(t1_bloom_load->at(8) == 2);
+	CHECK(t1_bloom_load->at(10) == 4);
+	CHECK(t1_bloom_load->at(999) == 255);
 }
 
 TEST_CASE("Test write and load Gz") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 1);
-	t0_bloom.writeGz("test_data/t0.blm");
-	Bloom::Filter t0_bloom_load = Bloom::Filter::loadGz("test_data/t0.blm");
+	t0_bloom.write("test_data/t0.blm");
+	std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
 	std::remove("test_data/t0.blm");
-	CHECK(t0_bloom_load.size() == 1000);
-	CHECK(t0_bloom_load.setBitsCount() == 0);
-	CHECK(t0_bloom_load.kmerSize() == 31);
-	CHECK(t0_bloom_load.hashN() == 1);
+	CHECK(t0_bloom_load->size() == 1000);
+	CHECK(t0_bloom_load->setBitsCount() == 0);
+	CHECK(t0_bloom_load->kmerSize() == 31);
+	CHECK(t0_bloom_load->hashN() == 1);
 
 	Bloom::Filter t1_bloom = Bloom::Filter(1000, 31, 1);
 	t1_bloom.at(0) = 1;
@@ -82,12 +96,12 @@ TEST_CASE("Test write and load Gz") {
 	t1_bloom.at(8) = 2;
 	t1_bloom.at(10) = 4;
 	t1_bloom.at(999) = 255;
-	t1_bloom.writeGz("test_data/t1.blm");
-	Bloom::Filter t1_bloom_load = Bloom::Filter::loadGz("test_data/t1.blm");
+	t1_bloom.write("test_data/t1.blm");
+	std::optional<Bloom::Filter> t1_bloom_load = Bloom::Filter::load("test_data/t1.blm");
 	std::remove("test_data/t1.blm");
-	CHECK(t1_bloom.at(0) == 1);
-	CHECK(t1_bloom.at(3) == 3);
-	CHECK(t1_bloom.at(8) == 2);
-	CHECK(t1_bloom.at(10) == 4);
-	CHECK(t1_bloom.at(999) == 255);
+	CHECK(t1_bloom_load->at(0) == 1);
+	CHECK(t1_bloom_load->at(3) == 3);
+	CHECK(t1_bloom_load->at(8) == 2);
+	CHECK(t1_bloom_load->at(10) == 4);
+	CHECK(t1_bloom_load->at(999) == 255);
 }

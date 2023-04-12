@@ -111,7 +111,11 @@ namespace Gz {
 			gzclose(file_handler);
 		}
 	}
-	void Writer::bufferedWrite(std::vector<uint8_t>& data) {
+
+	int Writer::write(void* buff, size_t bytes) {
+		return gzwrite(file_handler, (char*) buff, bytes);
+	}
+	int Writer::bufferedWrite(const std::vector<uint8_t>& data) {
 		uint64_t written_bytes = 0;
 		size_t bytes = data.size();
 		int max_bytes = std::numeric_limits<int>::max();
@@ -121,11 +125,12 @@ namespace Gz {
 			int buffer_size = std::min(static_cast<uint64_t>(max_bytes), bytes - written_bytes);
 			int gzwrite_output = gzwrite(file_handler, (char*) &data[offset], buffer_size*sizeof(data.at(offset)));
 			if (gzwrite_output < 0) {
-				return;
+				return gzwrite_output;
 			} else {
 				written_bytes += buffer_size;
 				offset = written_bytes;
 			}
 		}
+		return 0;
 	}
 }

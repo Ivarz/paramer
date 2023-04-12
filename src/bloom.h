@@ -19,24 +19,24 @@ public:
   }
 
   //cpy constructor for debugging purposes
-  Filter(const Filter& f) :
-	  filter_size(f.filter_size),
-	  kmer_size(f.kmer_size),
-	  hash_n(f.hash_n),
-	  bytevec(f.bytevec)
-	{
-		std::cerr << "Copying Bloom\n";
-	}
+  //Filter(const Filter& f) :
+	  //filter_size(f.filter_size),
+	  //kmer_size(f.kmer_size),
+	  //hash_n(f.hash_n),
+	  //bytevec(f.bytevec)
+	//{
+		//std::cerr << "Copying Bloom\n";
+	//}
 
   void addSeq(const std::string &seq);
   size_t searchSeq(const std::string &seq) const;
   void addFasta(const std::string &fasta_fname, size_t minsize);
   void addFastq(const std::string &fastq_fname, size_t minsize);
   size_t searchFastqPair(const Fastq::Pair &fq_pair) const;
+  void writeRaw(const std::string &out_fname) const;
   void write(const std::string &out_fname) const;
-  void writeGz(const std::string &out_fname) const;
+  static std::optional<Filter> loadRaw(const std::string &in_fname);
   static std::optional<Filter> load(const std::string &in_fname);
-  static std::optional<Filter> loadGz(const std::string &in_fname);
   size_t size() const { return bytevec.size(); }
   uint64_t hashN() const { return hash_n; }
   uint64_t kmerSize() const { return kmer_size; }

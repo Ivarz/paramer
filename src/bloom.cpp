@@ -86,7 +86,7 @@ namespace Bloom {
 	}
 
 
-	void Filter::write(const std::string& out_fname) const {
+	void Filter::writeRaw(const std::string& out_fname) const {
 		std::ofstream outfh(out_fname, std::ios::out | std::ios::binary);
 		uint64_t fsize = static_cast<uint64_t>(bytevec.size());
 		uint64_t k = static_cast<uint64_t>(kmer_size);
@@ -99,44 +99,46 @@ namespace Bloom {
 		outfh.close();
 	}
 
-	void Filter::writeGz(const std::string& out_fname) const {
-		gzFile fp = gzopen(out_fname.c_str(),"wb");
+	void Filter::write(const std::string& out_fname) const {
+		Gz::Writer gzwriter(out_fname);
+		//gzFile fp = gzopen(out_fname.c_str(),"wb");
 
 		uint64_t fsize = static_cast<uint64_t>(bytevec.size());
 		uint64_t k = static_cast<uint64_t>(kmer_size);
 		uint64_t h = static_cast<uint64_t>(hash_n);
-		gzwrite(fp, (char*) &fsize, sizeof(fsize));
-		gzwrite(fp, (char*) &k, sizeof(k));
-		gzwrite(fp, (char*) &h, sizeof(h));
+		gzwriter.write(&fsize, sizeof(fsize));
+		gzwriter.write(&k, sizeof(k));
+		gzwriter.write(&h, sizeof(h));
 
-		int max_bytes = std::numeric_limits<int>::max();
-		size_t offset = 0;
+		gzwriter.bufferedWrite(bytevec);
+		//int max_bytes = std::numeric_limits<int>::max();
+		//size_t offset = 0;
 
-		uint64_t written_bytes = 0;
+		//uint64_t written_bytes = 0;
 
-		while (written_bytes < filter_size) {
-			int buffer_size = std::min(static_cast<uint64_t>(max_bytes), filter_size - written_bytes);
-			int gzwrite_output = gzwrite(fp, (char*) &bytevec[offset], buffer_size*sizeof(bytevec.at(offset)));
-			//std::cerr << buffer_size << '\t' << loaded_bytes << '\t' << filter_size << '\n';
-			if (gzwrite_output < 0) {
-				//std::cerr << __FUNCTION__ << " Error " << gzerror(fp, &gzwrite_output)  << "\n";
-				gzclose(fp);
-				//std::remove(out_fname);
-				return;
-			} else {
-				written_bytes += buffer_size;
-				offset = written_bytes;
-			}
-		}
-		std::cout << "written_bytes " << written_bytes << '\n';
+		//while (written_bytes < filter_size) {
+			//int buffer_size = std::min(static_cast<uint64_t>(max_bytes), filter_size - written_bytes);
+			//int gzwrite_output = gzwrite(fp, (char*) &bytevec[offset], buffer_size*sizeof(bytevec.at(offset)));
+			////std::cerr << buffer_size << '\t' << loaded_bytes << '\t' << filter_size << '\n';
+			//if (gzwrite_output < 0) {
+				////std::cerr << __FUNCTION__ << " Error " << gzerror(fp, &gzwrite_output)  << "\n";
+				//gzclose(fp);
+				////std::remove(out_fname);
+				//return;
+			//} else {
+				//written_bytes += buffer_size;
+				//offset = written_bytes;
+			//}
+		//}
+		//std::cout << "written_bytes " << written_bytes << '\n';
 
-		//outfh.write((char*) &out_fname[0], out_fname.size()*sizeof(char));
-		//gzwrite(fp, (char*) &bytevec[0], filter_size*sizeof(bytevec.at(0)));
+		////outfh.write((char*) &out_fname[0], out_fname.size()*sizeof(char));
+		////gzwrite(fp, (char*) &bytevec[0], filter_size*sizeof(bytevec.at(0)));
 
-		gzclose(fp);
+		//gzclose(fp);
 	}
 
-	std::optional<Filter> Filter::load(const std::string& in_fname) {
+	std::optional<Filter> Filter::loadRaw(const std::string& in_fname) {
 		uint64_t filter_size = 0;
 		uint64_t kmer_size = 0;
 		uint64_t hash_n = 0;
@@ -155,7 +157,7 @@ namespace Bloom {
 		return result;
 	}
 
-	std::optional<Filter> Filter::loadGz(const std::string& in_fname) {
+	std::optional<Filter> Filter::load(const std::string& in_fname) {
 
 		uint64_t filter_size = 0;
 		uint64_t kmer_size = 0;
@@ -181,7 +183,6 @@ namespace Bloom {
 			return {};
 		}
 	}
-
 	size_t Filter::setBitsCount() const {
 		size_t count = 0;
 		for (size_t i=0; i < size(); i++) {
