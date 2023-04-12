@@ -2,6 +2,7 @@
 #include "bit_lookup.h"
 #include <algorithm>
 #include <cstdio>
+#include <cmath>
 namespace Bloom {
 	std::pair<size_t, uint8_t> index_value(uint64_t hash_value, size_t filter_size) {
 		uint64_t bit_idx = hash_value % (filter_size*BITS_IN_BYTE);
@@ -99,7 +100,7 @@ namespace Bloom {
 		outfh.close();
 	}
 
-	void Filter::write(const std::string& out_fname) const {
+	int Filter::write(const std::string& out_fname) const {
 		Gz::Writer gzwriter(out_fname);
 		//gzFile fp = gzopen(out_fname.c_str(),"wb");
 
@@ -109,33 +110,7 @@ namespace Bloom {
 		gzwriter.write(&fsize, sizeof(fsize));
 		gzwriter.write(&k, sizeof(k));
 		gzwriter.write(&h, sizeof(h));
-
-		gzwriter.bufferedWrite(bytevec);
-		//int max_bytes = std::numeric_limits<int>::max();
-		//size_t offset = 0;
-
-		//uint64_t written_bytes = 0;
-
-		//while (written_bytes < filter_size) {
-			//int buffer_size = std::min(static_cast<uint64_t>(max_bytes), filter_size - written_bytes);
-			//int gzwrite_output = gzwrite(fp, (char*) &bytevec[offset], buffer_size*sizeof(bytevec.at(offset)));
-			////std::cerr << buffer_size << '\t' << loaded_bytes << '\t' << filter_size << '\n';
-			//if (gzwrite_output < 0) {
-				////std::cerr << __FUNCTION__ << " Error " << gzerror(fp, &gzwrite_output)  << "\n";
-				//gzclose(fp);
-				////std::remove(out_fname);
-				//return;
-			//} else {
-				//written_bytes += buffer_size;
-				//offset = written_bytes;
-			//}
-		//}
-		//std::cout << "written_bytes " << written_bytes << '\n';
-
-		////outfh.write((char*) &out_fname[0], out_fname.size()*sizeof(char));
-		////gzwrite(fp, (char*) &bytevec[0], filter_size*sizeof(bytevec.at(0)));
-
-		//gzclose(fp);
+		return gzwriter.bufferedWrite(bytevec);
 	}
 
 	std::optional<Filter> Filter::loadRaw(const std::string& in_fname) {
@@ -189,5 +164,13 @@ namespace Bloom {
 			count += BitLookup::BIT_COUNT[bytevec[i]];
 		}
 		return count;
+	}
+	double Filter::falsePostiveRate() const {
+		double k = static_cast<double>(hash_n);
+		double m = static_cast<double>(bytevec.size());
+		double set_bits = static_cast<double>(this->setBitsCount());
+		double n_star = - (m/k)*logf(1.0-(set_bits/m));
+		double res = pow(1 - exp((-k*n_star)/m), k);
+		return res;
 	}
 }

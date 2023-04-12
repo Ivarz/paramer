@@ -205,8 +205,6 @@ int run(int argc, char **argv) {
     }
   }
   blmf.write(output_fname);
-  Bloom::Filter blmf2 = Bloom::Filter::load(output_fname);
-  std::cerr << "size " << blmf2.size() << '\n';
 
   return 0;
 }
@@ -235,10 +233,10 @@ int run(int argc, char **argv) {
   std::string seq = result["sequence"].as<std::string>();
   std::string bloom_filter_name = result["bloom"].as<std::string>();
 
-  Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
+  std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
   size_t hits = 0;
   if (seq.size() > 0) {
-    hits = bloom_filter.searchSeq(seq);
+    hits = bloom_filter->searchSeq(seq);
     std::cout << "Kmers matching: " << hits << '\n';
     return 0;
   }
@@ -254,7 +252,7 @@ int run(int argc, char **argv) {
       Fastq::nextRecordPair(mates1_reader, mates2_reader);
 
   while (curr_rec_pair) {
-    size_t kmer_hits = bloom_filter.searchFastqPair(*curr_rec_pair);
+    size_t kmer_hits = bloom_filter->searchFastqPair(*curr_rec_pair);
     if (kmer_hits >= hit_threshold) {
       // std::cout << "Kmer hits\t" << kmer_hits << '\n';
       curr_rec_pair->first.print();
@@ -266,7 +264,7 @@ int run(int argc, char **argv) {
   return 0;
 }
 } // namespace BloomSearch
-namespace Reconstruct {
+namespace Extend {
 int run(int argc, char **argv) {
 
   cxxopts::Options options("reconstruct",
@@ -285,10 +283,10 @@ int run(int argc, char **argv) {
   std::string seq = result["sequence"].as<std::string>();
   std::string bloom_filter_name = result["bloom"].as<std::string>();
 
-  Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
+  std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
   size_t hits = 0;
   if (seq.size() > 0) {
-    hits = bloom_filter.searchSeq(seq);
+    hits = bloom_filter->searchSeq(seq);
     std::cout << "Kmers matching: " << hits << '\n';
   }
   size_t prev_hits = 0;
@@ -300,7 +298,7 @@ int run(int argc, char **argv) {
     for (char c : "ATGC") {
       new_seq = seq + c;
       std::cerr << "trying" << '\t' << new_seq << '\n';
-      size_t new_hits = bloom_filter.searchSeq(new_seq);
+      size_t new_hits = bloom_filter->searchSeq(new_seq);
       if (new_hits > hits) {
         seq = new_seq;
         hits = new_hits;
@@ -312,54 +310,8 @@ int run(int argc, char **argv) {
 
   return 0;
 }
-} // namespace Reconstruct
-namespace ReconstructPrev {
-int run(int argc, char **argv) {
+} // namespace Extend
 
-  cxxopts::Options options("reconstructprev",
-                           "Reconstruct 5' from seed and Bloom's filter");
-  options.add_options()("b,bloom", "Bloom filter",
-                        cxxopts::value<std::string>())(
-      "s,sequence", "Sequence to search",
-      cxxopts::value<std::string>()->default_value(""))("h,help",
-                                                        "Help message");
-
-  if (argc < 3) {
-    print_help(options);
-    return 0;
-  }
-  auto result = options.parse(argc - 1, argv + 1);
-  std::string seq = result["sequence"].as<std::string>();
-  std::string bloom_filter_name = result["bloom"].as<std::string>();
-
-  Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
-  size_t hits = 0;
-  if (seq.size() > 0) {
-    hits = bloom_filter.searchSeq(seq);
-    std::cout << "Kmers matching: " << hits << '\n';
-  }
-  size_t prev_hits = 0;
-  std::string new_seq = "";
-  std::string prev_seq = "";
-
-  while (seq.size() > prev_seq.size()) {
-    prev_seq = seq;
-    for (char c : "ATGC") {
-      new_seq = c + seq;
-      std::cerr << "trying" << '\t' << new_seq << '\n';
-      size_t new_hits = bloom_filter.searchSeq(new_seq);
-      if (new_hits > hits) {
-        seq = new_seq;
-        hits = new_hits;
-        std::cerr << new_hits << '\t' << seq << '\n';
-        continue;
-      }
-    }
-  }
-
-  return 0;
-}
-} // namespace ReconstructPrev
 namespace Stats {
 int run(int argc, char **argv) {
 
@@ -374,10 +326,10 @@ int run(int argc, char **argv) {
 		}
 	    auto result = options.parse(argc - 1, argv + 1);
 		std::string bloom_filter_name = result["bloom"].as<std::string>();
-		Bloom::Filter bloom_filter = Bloom::Filter::load(bloom_filter_name);
-		size_t set_bits = bloom_filter.setBitsCount();
-		std::cerr << "bloom filter size " << bloom_filter.size() << '\n';
-		std::cerr << "set bits " << set_bits << '\n';
+		std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
+		std::cout << "bloom filter size:\t" << bloom_filter->size() << '\n';
+		std::cout << "set bits:\t" << bloom_filter->setBitsCount() << '\n';
+		std::cout << "false positive rate:\t" << bloom_filter->falsePostiveRate() << '\n';
 
 		return 0;
 	}
@@ -402,28 +354,12 @@ int main(int argc, char **argv) {
     return 0;
   }
 
-  if (std::string(argv[1]) == "mask") {
-    Cmd::Mask::run(argc, argv);
-    return 0;
-  } else if (std::string(argv[1]) == "bloom-build") {
-    Cmd::BloomBuild::run(argc, argv);
-    return 0;
-  } else if (std::string(argv[1]) == "bloom-search") {
-    Cmd::BloomSearch::run(argc, argv);
-    return 0;
-  } else if (std::string(argv[1]) == "reconstruct") {
-    Cmd::Reconstruct::run(argc, argv);
-    return 0;
-  } else if (std::string(argv[1]) == "reconstruct-prev") {
-    Cmd::ReconstructPrev::run(argc, argv);
-    return 0;
-  } else if (std::string(argv[1]) == "stats") {
-    Cmd::Stats::run(argc, argv);
-    return 0;
-  } else {
-    print_cmd_usage();
-    return 0;
-  }
+  if (std::string(argv[1]) == "mask") { Cmd::Mask::run(argc, argv); }
+  else if (std::string(argv[1]) == "bloom-build") { Cmd::BloomBuild::run(argc, argv); }
+  else if (std::string(argv[1]) == "bloom-search") { Cmd::BloomSearch::run(argc, argv); }
+  else if (std::string(argv[1]) == "extend") { Cmd::Extend::run(argc, argv); }
+  else if (std::string(argv[1]) == "stats") { Cmd::Stats::run(argc, argv); }
+  else { print_cmd_usage(); }
 
   return 0;
 }
