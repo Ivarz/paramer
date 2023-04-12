@@ -198,8 +198,8 @@ namespace BloomSearch {
 namespace Extend {
 	int run(int argc, char **argv) {
 
-	  cxxopts::Options options("reconstruct",
-							   "Reconstruct from seed and Bloom's filter");
+	  cxxopts::Options options("extend",
+							   "Extend sequence in 3' and 5' directions with kmers found in Bloom's filter");
 	  options.add_options()("b,bloom", "Bloom filter",
 							cxxopts::value<std::string>())(
 		  "s,sequence", "Sequence to search",

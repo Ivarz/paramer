@@ -10,6 +10,7 @@ void print_cmd_usage() {
   std::cerr << "      mask\t\tmask fasta file with kraken2 file and/or kmers found in another fasta file\n";
   std::cerr << "      bloom-build\tbuild Bloom's filter\n";
   std::cerr << "      bloom-search\tsearch in Bloom's filter\n";
+  std::cerr << "      extend\t\textend sequence in 3' and 5' directions with kmers found in Bloom's filter\n";
   std::cerr << "      stats\t\tPerform various statistics operations\n";
 }
 
