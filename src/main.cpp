@@ -264,6 +264,7 @@ int run(int argc, char **argv) {
   return 0;
 }
 } // namespace BloomSearch
+
 namespace Extend {
 int run(int argc, char **argv) {
 

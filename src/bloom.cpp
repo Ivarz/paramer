@@ -1,5 +1,6 @@
 #include "bloom.h"
 #include "bit_lookup.h"
+#include "seq.h"
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
@@ -173,4 +174,68 @@ namespace Bloom {
 		double res = pow(1 - exp((-k*n_star)/m), k);
 		return res;
 	}
+
+	void Filter::dfs5prime(const std::string& current_seq, std::unordered_set<std::string>& seen_kmers, std::vector<std::string>& candidate_seqs) const {
+		std::string current_5p_kmer = current_seq.substr(current_seq.size()-kmer_size, kmer_size);
+		seen_kmers.insert(current_5p_kmer);
+		std::cout << __func__ << "\t" << current_seq << '\n';
+		std::vector<std::string> potential_5p_neighbours;
+		bool finished_path = true;
+		for (char c: std::string("ATGC")){
+			std::string potential_neighbour = current_5p_kmer.substr(1,kmer_size-1) + c;
+			//std::cout << "potential neigh\n";
+			//std::cout << potential_neighbour << '\t' << searchSeq(potential_neighbour) << '\n';
+			if (searchSeq(potential_neighbour) && !seen_kmers.count(potential_neighbour)){
+				finished_path = false;
+				dfs5prime(current_seq+c, seen_kmers, candidate_seqs);
+			}
+		}
+		if (finished_path) {
+			std::cout << "Candidate\t"<< current_seq << '\n';
+			candidate_seqs.push_back(current_seq);
+		}
+		std::cout << "Backtrack\t" << current_seq << '\n';
+	}
+	void Filter::dfs3prime(const std::string& current_seq, std::unordered_set<std::string>& seen_kmers, std::vector<std::string>& candidate_seqs) const {
+
+		std::string current_3p_kmer = current_seq.substr(0, kmer_size);
+		seen_kmers.insert(current_3p_kmer);
+		std::cout << __func__ << "\t" << current_seq << '\n';
+		std::vector<std::string> potential_3p_neighbours;
+		bool finished_path = true;
+
+		for (char c: std::string("ATGC")){
+			std::string potential_neighbour = c + current_3p_kmer.substr(0,kmer_size-1);
+			//std::cout << "potential neigh\n";
+			//std::cout << potential_neighbour << '\t' << searchSeq(potential_neighbour) << '\n';
+			if (searchSeq(potential_neighbour) && !seen_kmers.count(potential_neighbour)){
+				finished_path = false;
+				dfs3prime(c+current_seq, seen_kmers, candidate_seqs);
+			}
+		}
+		if (finished_path) {
+			std::cout << "Candidate\t"<< current_seq << '\n';
+			candidate_seqs.push_back(current_seq);
+		}
+	}
+	std::vector<std::string> Filter::extendSeq(const std::string &seq) const {
+		std::unordered_set<std::string> seen_kmers;
+		Dna::addKmers(seq, kmer_size, seen_kmers);
+		std::vector<std::string> candidate_seqs_5p;
+		std::vector<std::string> candidate_seqs_3p;
+
+		dfs5prime(seq, seen_kmers, candidate_seqs_5p);
+		for (const std::string& candidate_seq: candidate_seqs_5p){
+			std::unordered_set<std::string> seen_kmers_3p;
+			Dna::addKmers(candidate_seq, kmer_size, seen_kmers_3p);
+			dfs3prime(candidate_seq, seen_kmers_3p, candidate_seqs_3p);
+		}
+		std::cerr << "Final candidates\n";
+		for (const auto& seq: candidate_seqs_3p) {
+			std::cerr << seq << "\n";
+		}
+
+		return candidate_seqs_3p;
+	}
+
 }

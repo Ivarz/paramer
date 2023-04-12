@@ -2,7 +2,7 @@ paramer : src/main.cpp src/utils.cpp src/fastx.cpp src/seq.cpp src/kraken2.cpp s
 	g++ -std=c++17 \
 		-I third_party -I third_party/ntHash-2.2.0 -I src -I third_party/cxxopts/include \
 		$^ \
-		-o $@ -lz
+		-o $@ -lz -O3
 
 test : tests/unit_tests/seq_tests.cpp tests/unit_tests/fastx_tests.cpp tests/unit_tests/utils_tests.cpp tests/unit_tests/bloom_tests.cpp
 	g++ -std=c++17 \

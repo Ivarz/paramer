@@ -19,10 +19,13 @@ public:
   }
 
   void addSeq(const std::string &seq);
-  size_t searchSeq(const std::string &seq) const;
   void addFasta(const std::string &fasta_fname, size_t minsize);
   void addFastq(const std::string &fastq_fname, size_t minsize);
+  size_t searchSeq(const std::string &seq) const;
   size_t searchFastqPair(const Fastq::Pair &fq_pair) const;
+
+  std::vector<std::string> extendSeq(const std::string& seq) const;
+
   void writeRaw(const std::string &out_fname) const;
   int write(const std::string &out_fname) const;
   static std::optional<Filter> loadRaw(const std::string &in_fname);
@@ -41,6 +44,14 @@ private:
   uint64_t kmer_size;
   uint64_t hash_n;
   std::vector<uint8_t> bytevec;
+  void dfs5prime(const std::string& current_seq,
+		  std::unordered_set<std::string>& seen_kmers,
+		  std::vector<std::string>& candidate_seqs
+		  ) const;
+  void dfs3prime(const std::string& current_seq,
+		  std::unordered_set<std::string>& seen_kmers,
+		  std::vector<std::string>& candidate_seqs
+		  ) const;
 };
 } // namespace Bloom
 #endif
