@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <cstdio>
 #include <cmath>
+#include <functional>
 namespace Bloom {
 	std::pair<size_t, uint8_t> index_value(uint64_t hash_value, size_t filter_size) {
 		uint64_t bit_idx = hash_value % (filter_size*BITS_IN_BYTE);
@@ -174,68 +175,81 @@ namespace Bloom {
 		double res = pow(1 - exp((-k*n_star)/m), k);
 		return res;
 	}
-
-	void Filter::dfs5prime(const std::string& current_seq, std::unordered_set<std::string>& seen_kmers, std::vector<std::string>& candidate_seqs) const {
-		std::string current_5p_kmer = current_seq.substr(current_seq.size()-kmer_size, kmer_size);
-		seen_kmers.insert(current_5p_kmer);
-		std::cout << __func__ << "\t" << current_seq << '\n';
-		std::vector<std::string> potential_5p_neighbours;
+	void Filter::dfs(std::string current_seq, std::unordered_set<uint64_t> seen_kmer_hashes,
+                 std::vector<std::string>& candidate_seqs,
+                 const std::function<std::string(std::string)>& extract_kmer,
+                 const std::function<std::string(std::string, char)>& next_seq
+				 ) const {
+		std::string current_kmer = extract_kmer(current_seq);
+		Dna::addKmerHashes(current_kmer, kmer_size, 1, seen_kmer_hashes);
 		bool finished_path = true;
-		for (char c: std::string("ATGC")){
-			std::string potential_neighbour = current_5p_kmer.substr(1,kmer_size-1) + c;
-			//std::cout << "potential neigh\n";
-			//std::cout << potential_neighbour << '\t' << searchSeq(potential_neighbour) << '\n';
-			if (searchSeq(potential_neighbour) && !seen_kmers.count(potential_neighbour)){
+		for (char c : std::string("ATGC")) {
+			std::string potential_neighbour = extract_kmer(next_seq(current_kmer, c));
+			uint64_t neighbour_hash = Dna::getHashes(potential_neighbour, kmer_size, 1)[0];
+			if (searchSeq(potential_neighbour) && !seen_kmer_hashes.count(neighbour_hash)) {
 				finished_path = false;
-				dfs5prime(current_seq+c, seen_kmers, candidate_seqs);
+				dfs(next_seq(current_seq, c), seen_kmer_hashes, candidate_seqs, extract_kmer, next_seq);
 			}
 		}
 		if (finished_path) {
-			std::cout << "Candidate\t"<< current_seq << '\n';
+			//std::cout << "Candidate\t" << current_seq << '\n';
 			candidate_seqs.push_back(current_seq);
 		}
-		std::cout << "Backtrack\t" << current_seq << '\n';
+		//std::cout << "Backtrack\t" << current_seq << '\n';
 	}
-	void Filter::dfs3prime(const std::string& current_seq, std::unordered_set<std::string>& seen_kmers, std::vector<std::string>& candidate_seqs) const {
 
-		std::string current_3p_kmer = current_seq.substr(0, kmer_size);
-		seen_kmers.insert(current_3p_kmer);
-		std::cout << __func__ << "\t" << current_seq << '\n';
-		std::vector<std::string> potential_3p_neighbours;
-		bool finished_path = true;
+	void Filter::dfs5prime(const std::string& current_seq,
+			std::unordered_set<uint64_t> seen_kmer_hashes,
+			std::vector<std::string>& candidate_seqs
+			) const {
 
-		for (char c: std::string("ATGC")){
-			std::string potential_neighbour = c + current_3p_kmer.substr(0,kmer_size-1);
-			//std::cout << "potential neigh\n";
-			//std::cout << potential_neighbour << '\t' << searchSeq(potential_neighbour) << '\n';
-			if (searchSeq(potential_neighbour) && !seen_kmers.count(potential_neighbour)){
-				finished_path = false;
-				dfs3prime(c+current_seq, seen_kmers, candidate_seqs);
-			}
-		}
-		if (finished_path) {
-			std::cout << "Candidate\t"<< current_seq << '\n';
-			candidate_seqs.push_back(current_seq);
-		}
+		auto extract_kmer = [this](std::string s){ return s.substr(s.size()-kmer_size, kmer_size); };
+		auto next_seq = [](std::string str, char c) { return str + c; };
+		dfs(current_seq,
+				seen_kmer_hashes,
+				candidate_seqs,
+				extract_kmer,
+				next_seq
+				);
+	}
+	void Filter::dfs3prime(const std::string& current_seq,
+			std::unordered_set<uint64_t> seen_kmer_hashes,
+			std::vector<std::string>& candidate_seqs
+			) const {
+
+		auto extract_kmer = [this](std::string s){ return s.substr(0, kmer_size); };
+		auto next_seq = [](std::string str, char c) { return c + str; };
+		dfs(current_seq,
+				seen_kmer_hashes,
+				candidate_seqs,
+				extract_kmer,
+				next_seq
+				);
 	}
 	std::vector<std::string> Filter::extendSeq(const std::string &seq) const {
-		std::unordered_set<std::string> seen_kmers;
-		Dna::addKmers(seq, kmer_size, seen_kmers);
+		std::unordered_set<uint64_t> seen_kmers_5p;
+		size_t hash_n_for_dfs = 1;
+		Dna::addKmerHashes(seq, kmer_size, hash_n_for_dfs, seen_kmers_5p);
+		std::unordered_set<uint64_t> seen_kmers_3p = seen_kmers_5p;
 		std::vector<std::string> candidate_seqs_5p;
 		std::vector<std::string> candidate_seqs_3p;
+		std::vector<std::string> extended_seqs;
 
-		dfs5prime(seq, seen_kmers, candidate_seqs_5p);
-		for (const std::string& candidate_seq: candidate_seqs_5p){
-			std::unordered_set<std::string> seen_kmers_3p;
-			Dna::addKmers(candidate_seq, kmer_size, seen_kmers_3p);
-			dfs3prime(candidate_seq, seen_kmers_3p, candidate_seqs_3p);
+		dfs5prime(seq, seen_kmers_5p, candidate_seqs_5p);
+		dfs3prime(seq, seen_kmers_3p, candidate_seqs_3p);
+		for (const auto& seq5: candidate_seqs_5p) {
+			for (const auto& seq3: candidate_seqs_3p) {
+				std::string seq5_extension = seq5.substr(seq.size(), seq5.size()-seq.size());
+				std::string seq3_extension = seq3.substr(0, seq3.size()-seq.size());
+				extended_seqs.push_back(seq3_extension + seq + seq5_extension);
+			}
 		}
 		std::cerr << "Final candidates\n";
-		for (const auto& seq: candidate_seqs_3p) {
-			std::cerr << seq << "\n";
+		for (const auto& s: extended_seqs) {
+			std::cerr << s << '\n';
 		}
 
-		return candidate_seqs_3p;
+		return extended_seqs;
 	}
 
 }

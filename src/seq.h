@@ -19,6 +19,8 @@ namespace Dna {
 	
 	void addKmers(const std::string& seq, size_t size, std::unordered_set<std::string>& kmers);
 
+	void addKmerHashes(const std::string& seq, size_t size, size_t hash_n, std::unordered_set<uint64_t>& kmer_hashes);
+
 	std::vector<uint64_t> getHashes(const std::string& seq, size_t kmer_size, size_t hash_n);
 
 	std::pair<size_t,size_t> nextToggleMaskedRegion(const std::string& seq, size_t beg);

@@ -73,6 +73,15 @@ namespace Dna {
 		}
 	}
 
+	void addKmerHashes(const std::string& seq,
+			size_t size,
+			size_t hash_n,
+			std::unordered_set<uint64_t>& kmer_hashes
+			){
+		for (const auto& hash: getHashes(seq, size, hash_n)){
+			kmer_hashes.insert(hash);
+		}
+	}
 	bool isMasked(char c) {
 		return c == 'a' || c == 't' || c == 'g' || c == 'c' || c == 'N' || c == 'n';
 

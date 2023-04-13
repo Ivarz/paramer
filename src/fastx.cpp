@@ -152,10 +152,6 @@ namespace Fasta {
 					while (itr != itr.end()) {
 						uint64_t hash_value = (*itr)[0];
 						std::string curr_seq = seq.seq.substr(beg, kmer_size);
-						// std::cerr << curr_seq << '\t' << hash_value << '\n';
-						// if (curr_seq == "CAGCAGTAAAAGCTAAAAGAACGAATACCAC" ) {
-						// 	std::cerr << curr_seq << '\t' << hash_value << '\n';
-						// }
 						result.insert(hash_value);
 						++itr;
 						++beg;
