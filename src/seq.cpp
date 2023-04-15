@@ -168,6 +168,14 @@ namespace Dna {
 		}
 		return results;
 	}
+
+	//std::vector<uint64_t> getMinimizerHashes(
+			//const std::string &seq,
+			//size_t kmer_size,
+			//size_t hash_n,
+			//size_t window_size) {
+	//}
+
 	void softmaskNotInKmerHashes(std::string& seq, const std::unordered_set<uint64_t>& kmer_hashes, size_t kmer_size) {
 		size_t hash_n = 1;
 		for (auto split_rec: Dna::splitOnMaskWithInterval(seq)) {

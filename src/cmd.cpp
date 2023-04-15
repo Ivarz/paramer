@@ -215,28 +215,13 @@ namespace Extend {
 	  std::string bloom_filter_name = result["bloom"].as<std::string>();
 
 	  std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
-	  size_t hits = 0;
-	  if (seq.size() > 0) {
-		hits = bloom_filter->searchSeq(seq);
-		std::cout << "Kmers matching: " << hits << '\n';
-	  }
-	  size_t prev_hits = 0;
-	  std::string new_seq = "";
-	  std::string prev_seq = "";
-
-	  while (seq.size() > prev_seq.size()) {
-		prev_seq = seq;
-		for (char c : "ATGC") {
-		  new_seq = seq + c;
-		  std::cerr << "trying" << '\t' << new_seq << '\n';
-		  size_t new_hits = bloom_filter->searchSeq(new_seq);
-		  if (new_hits > hits) {
-			seq = new_seq;
-			hits = new_hits;
-			std::cerr << new_hits << '\t' << seq << '\n';
-			continue;
+	  if (bloom_filter) {
+		  std::vector<std::string> candidate_seqs =  bloom_filter->extendSeq(seq);
+		  for (const auto& seq: candidate_seqs) {
+			  std::cout << seq << '\n';
 		  }
-		}
+	  } else {
+		  std::cerr << "Failed to load bloom filter\n";
 	  }
 
 	  return 0;

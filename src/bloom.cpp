@@ -244,10 +244,6 @@ namespace Bloom {
 				extended_seqs.push_back(seq3_extension + seq + seq5_extension);
 			}
 		}
-		std::cerr << "Final candidates\n";
-		for (const auto& s: extended_seqs) {
-			std::cerr << s << '\n';
-		}
 
 		return extended_seqs;
 	}
