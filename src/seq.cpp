@@ -2,6 +2,8 @@
 #include <algorithm>
 #include <iostream>
 #include "ntHashIterator.hpp"
+#include <limits>
+#include <queue>
 
 namespace Dna {
 	std::string revcom(const std::string& seq) {
@@ -169,12 +171,36 @@ namespace Dna {
 		return results;
 	}
 
-	//std::vector<uint64_t> getMinimizerHashes(
-			//const std::string &seq,
-			//size_t kmer_size,
-			//size_t hash_n,
-			//size_t window_size) {
-	//}
+	std::vector<uint64_t> getMinimizerHashes(
+			const std::string &seq,
+			size_t kmer_size,
+			size_t hash_n,
+			size_t window_size) {
+
+		std::vector<uint64_t> hashes = getHashes(seq, kmer_size, hash_n);
+
+		std::vector<uint64_t> min_hash_per_window;
+		std::vector<uint64_t> current_mins(hash_n, std::numeric_limits<uint64_t>::max());
+		std::vector<int> current_min_counts(hash_n, 0);
+
+		for (auto c: hashes) {
+			std::cerr << c << '\n';
+		}
+		std::cerr << '\n' << '\n';
+		size_t kmers_in_window = window_size - kmer_size + 1;
+		size_t kmers_in_seq = seq.size() - kmer_size + 1;
+		for (size_t window_idx = 0; window_idx < kmers_in_seq - kmers_in_window + 1; window_idx++) {
+			for (size_t offset = 0; offset < hash_n; offset++) {
+				uint64_t min_value = hashes[window_idx*hash_n + offset];
+				for (size_t i = window_idx; i < window_idx+kmers_in_window; i++){
+					min_value = std::min(min_value, hashes[i*hash_n + offset]);
+				}
+				min_hash_per_window.push_back(min_value);
+			}
+		}
+
+		return min_hash_per_window;
+	}
 
 	void softmaskNotInKmerHashes(std::string& seq, const std::unordered_set<uint64_t>& kmer_hashes, size_t kmer_size) {
 		size_t hash_n = 1;
