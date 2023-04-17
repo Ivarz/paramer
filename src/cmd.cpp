@@ -46,8 +46,11 @@ namespace Mask {
 	  std::string fasta_fname = result["fasta"].as<std::string>();
 	  std::vector<std::string> kraken2_fnames =
 		  result["kraken2"].as<std::vector<std::string>>();
-	  std::vector<std::string> reference_fnames =
-		  result["reference"].as<std::vector<std::string>>();
+	  std::vector<std::string> reference_fnames{};
+	  if (result.count("reference") > 0) {
+	  	reference_fnames = result["reference"].as<std::vector<std::string>>();
+	  }
+	
 
 	  size_t kmer_size = result["klen"].as<size_t>();
 
@@ -112,8 +115,6 @@ namespace BloomBuild {
 	  uint64_t nhash = result["nhash"].as<uint64_t>();
 	  std::string output = result["output"].as<std::string>();
 	  Bloom::Filter blmf = Bloom::Filter(size, klen, nhash);
-	  // TODO add canonical kmers (lexicographically smaller min(kmer,
-	  // revcom(kmer)))
 	  for (const std::string &fname : seq_fnames) {
 		std::cerr << fname << '\n';
 		std::optional<FileFormat> fformat = Fastx::inferFileFormat(fname);

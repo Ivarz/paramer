@@ -61,7 +61,7 @@ namespace Dna {
 		}
 	}
 
-	void addKmers(const std::string& seq, size_t size, std::unordered_set<std::string>& kmers) {
+	void addKmers(const std::string& seq, size_t size, robin_hood::unordered_set<std::string>& kmers) {
 		if (seq.size() < size) {
 			return; 
 		}
@@ -78,7 +78,7 @@ namespace Dna {
 	void addKmerHashes(const std::string& seq,
 			size_t size,
 			size_t hash_n,
-			std::unordered_set<uint64_t>& kmer_hashes
+			robin_hood::unordered_set<uint64_t>& kmer_hashes
 			){
 		for (const auto& hash: getHashes(seq, size, hash_n)){
 			kmer_hashes.insert(hash);
@@ -110,7 +110,6 @@ namespace Dna {
 
 	std::vector<std::string> splitOnMask(const std::string& seq) {
 		std::vector<std::string> result;
-
 		std::pair<size_t, size_t> reg = Dna::nextToggleMaskedRegion(seq, 0);
 
 		while (reg.first != seq.size()) {
@@ -121,6 +120,20 @@ namespace Dna {
 			reg = Dna::nextToggleMaskedRegion(seq, reg.second);
 		}
 		
+		return result;
+	}
+
+	std::vector<SeqInterval> nonmaskedRegions(const std::string& seq) {
+		std::vector<SeqInterval> result;
+		std::pair<size_t, size_t> reg = Dna::nextToggleMaskedRegion(seq, 0);
+
+		while (reg.first != seq.size()) {
+			char reg_char = seq[reg.first];
+			if (!isMasked(reg_char)) {
+				result.push_back(reg);
+			}
+			reg = Dna::nextToggleMaskedRegion(seq, reg.second);
+		}
 		return result;
 	}
 	std::vector<std::pair<SeqInterval, std::string>> splitOnMaskWithInterval(const std::string& seq) {
@@ -177,18 +190,21 @@ namespace Dna {
 			size_t hash_n,
 			size_t window_size) {
 
+		std::vector<uint64_t> min_hash_per_window{};
+		if (kmer_size > seq.size()) {
+			return min_hash_per_window;
+		}
 		std::vector<uint64_t> hashes = getHashes(seq, kmer_size, hash_n);
 
-		std::vector<uint64_t> min_hash_per_window;
 		std::vector<uint64_t> current_mins(hash_n, std::numeric_limits<uint64_t>::max());
 		std::vector<int> current_min_counts(hash_n, 0);
 
-		for (auto c: hashes) {
-			std::cerr << c << '\n';
-		}
-		std::cerr << '\n' << '\n';
+		//for (auto c: hashes) {
+			//std::cerr << c << '\n';
+		//}
+		//std::cerr << '\n' << '\n';
 		size_t kmers_in_window = window_size - kmer_size + 1;
-		size_t kmers_in_seq = seq.size() - kmer_size + 1;
+		int kmers_in_seq = seq.size() - kmer_size + 1;
 		for (size_t window_idx = 0; window_idx < kmers_in_seq - kmers_in_window + 1; window_idx++) {
 			for (size_t offset = 0; offset < hash_n; offset++) {
 				uint64_t min_value = hashes[window_idx*hash_n + offset];
@@ -202,7 +218,7 @@ namespace Dna {
 		return min_hash_per_window;
 	}
 
-	void softmaskNotInKmerHashes(std::string& seq, const std::unordered_set<uint64_t>& kmer_hashes, size_t kmer_size) {
+	void softmaskNotInKmerHashes(std::string& seq, const robin_hood::unordered_set<uint64_t>& kmer_hashes, size_t kmer_size) {
 		size_t hash_n = 1;
 		for (auto split_rec: Dna::splitOnMaskWithInterval(seq)) {
 			if (split_rec.second.size() >= kmer_size) {

@@ -6,6 +6,7 @@
 #include <set>
 #include <unordered_set>
 #include <algorithm>
+#include "robin_hood.h"
 
 namespace Dna {
 	using SeqInterval = std::pair<size_t, size_t>;
@@ -17,9 +18,9 @@ namespace Dna {
 	void unmask(std::string& seq, size_t beg, size_t end);
 	//std::set<std::string> kmers(const std::string& seq, size_t size);
 	
-	void addKmers(const std::string& seq, size_t size, std::unordered_set<std::string>& kmers);
+	void addKmers(const std::string& seq, size_t size, robin_hood::unordered_set<std::string>& kmers);
 
-	void addKmerHashes(const std::string& seq, size_t size, size_t hash_n, std::unordered_set<uint64_t>& kmer_hashes);
+	void addKmerHashes(const std::string& seq, size_t size, size_t hash_n, robin_hood::unordered_set<uint64_t>& kmer_hashes);
 
 	std::vector<uint64_t> getHashes(const std::string& seq, size_t kmer_size, size_t hash_n);
 
@@ -27,6 +28,7 @@ namespace Dna {
 	std::pair<size_t,size_t> nextToggleMaskedRegion(const std::string& seq, size_t beg);
 
 	std::vector<std::string> splitOnMask(const std::string& seq);
+	std::vector<SeqInterval> nonmaskedRegions(const std::string& seq);
 
 	std::vector<std::pair<SeqInterval, std::string>> splitOnMaskWithInterval(const std::string& seq);
 
@@ -35,7 +37,7 @@ namespace Dna {
 	std::string canonicalKmer(const std::string& kmer);
 
 	void softmaskNotInKmerHashes(std::string& seq
-			, const std::unordered_set<uint64_t>& kmer_hashes
+			, const robin_hood::unordered_set<uint64_t>& kmer_hashes
 			, size_t kmer_size);
 }
 

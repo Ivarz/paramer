@@ -1,4 +1,5 @@
 #include "fastx.h"
+#include <string_view>
 
 namespace Fastx {
 	std::optional<FileFormat> inferFileFormat(const std::string& fname) {
@@ -123,8 +124,8 @@ namespace Fasta {
 		return;
 	}
 
-	std::unordered_set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size) {
-		std::unordered_set<std::string> result;
+	robin_hood::unordered_set<std::string> loadUnmaskedKmers(const std::string& fname, size_t kmer_size) {
+		robin_hood::unordered_set<std::string> result;
 		Gz::Reader fh = Gz::Reader(fname);
 		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
 		while (rec) {
@@ -137,33 +138,47 @@ namespace Fasta {
 		return result;
 	}
 
-	std::unordered_set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size) {
-		std::unordered_set<uint64_t> result;
+	robin_hood::unordered_set<uint64_t> loadUnmaskedKmerHashes(const std::string& fname, size_t kmer_size) {
+		robin_hood::unordered_set<uint64_t> result;
 		size_t hash_n = 1;
 		Gz::Reader fh = Gz::Reader(fname);
 
 		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
 		while (rec) {
-			for (Fasta::Rec seq: rec->splitOnMask()) {
-				if (seq.size() >= kmer_size) {
-					//std::cerr << seq.seq <<'\n';
-					ntHashIterator itr(seq.seq, hash_n, kmer_size);
-					size_t beg = 0;
-					while (itr != itr.end()) {
-						uint64_t hash_value = (*itr)[0];
-						std::string curr_seq = seq.seq.substr(beg, kmer_size);
+			for (Dna::SeqInterval interval: Dna::nonmaskedRegions(rec->seq)) {
+				size_t interval_size = interval.second - interval.first;
+				if (interval_size >= kmer_size) {
+					ntHashIterator itr(rec->seq.c_str()+interval.first, hash_n, kmer_size);
+					size_t hash_i = 0;
+					size_t kmer_count = interval_size - kmer_size + 1;
+					size_t hashes_in_window = hash_n * kmer_count;
+					while (hash_i++ < hashes_in_window) {
+						uint64_t hash_value = (*itr)[hash_i % hash_n];
 						result.insert(hash_value);
 						++itr;
-						++beg;
 					}
 				}
 			}
+			//for (Fasta::Rec seq: rec->splitOnMask()) {
+				//if (seq.size() >= kmer_size) {
+					////std::cerr << seq.seq <<'\n';
+					//ntHashIterator itr(seq.seq, hash_n, kmer_size);
+					//size_t beg = 0;
+					//while (itr != itr.end()) {
+						//uint64_t hash_value = (*itr)[0];
+						//std::string curr_seq = seq.seq.substr(beg, kmer_size);
+						//result.insert(hash_value);
+						//++itr;
+						//++beg;
+					//}
+				//}
+			//}
 			rec = Fasta::nextRecord(fh);
 		}
 		return result;
 	}
 
-	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, std::unordered_set<uint64_t>& kmers) {
+	void dropKmerHashesFound(const std::string& fname, size_t kmer_size, robin_hood::unordered_set<uint64_t>& kmers) {
 		Gz::Reader fh = Gz::Reader(fname);
 		std::optional<Fasta::Rec> rec = Fasta::nextRecord(fh);
 		size_t hash_n = 1;
@@ -208,7 +223,7 @@ namespace Fasta {
 			k2_recs.push_back(Kraken2::nextRecord(gzkr2));
 		}
 
-		std::unordered_set<uint64_t> fa_kmers = {};
+		robin_hood::unordered_set<uint64_t> fa_kmers = {};
 		if (reference_fnames.size() > 0) {
 			fa_kmers = loadUnmaskedKmerHashes(fasta_fname, kmer_size);
 			std::cerr << "kmer hashes loaded: " << fa_kmers.size() << '\n';

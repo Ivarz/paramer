@@ -46,18 +46,18 @@ private:
   uint64_t hash_n;
   std::vector<uint8_t> bytevec;
   void dfs(std::string current_seq,
-		  std::unordered_set<uint64_t> seen_kmer_hashes,
+		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 		  std::vector<std::string>& candidate_seqs,
 		  const std::function<std::string(std::string)>& extract_kmer,
 		  const std::function<std::string(std::string, char)>& next_seq
 		  ) const;
 
   void dfs5prime(const std::string& current_seq,
-		  std::unordered_set<uint64_t> seen_kmer_hashes,
+		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 		  std::vector<std::string>& candidate_seqs
 		  ) const;
   void dfs3prime(const std::string& current_seq,
-		  std::unordered_set<uint64_t> seen_kmer_hashes,
+		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 		  std::vector<std::string>& candidate_seqs
 		  ) const;
 

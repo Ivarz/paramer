@@ -13,34 +13,48 @@ namespace Bloom {
 		return std::pair<size_t, uint8_t>(byte_idx, byte_value);
 	}
 	void Filter::addSeq(const std::string& seq) {
-		ntHashIterator itr(seq, hash_n, kmer_size);
-		while (itr != itr.end()) {
-			for (size_t i = 0; i < hash_n; i++){
-				uint64_t hash_value = (*itr)[i];
-				std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
-				bytevec[idx_value.first] |= idx_value.second;
-			}
-			++itr;
+		for (uint64_t minimizer: Dna::getMinimizerHashes(seq, kmer_size, hash_n, kmer_size)) {
+			std::pair<size_t, uint8_t> idx_value = index_value(minimizer, filter_size);
+			bytevec[idx_value.first] |= idx_value.second;
 		}
+		//ntHashIterator itr(seq, hash_n, kmer_size);
+		//while (itr != itr.end()) {
+			//for (size_t i = 0; i < hash_n; i++){
+				//uint64_t hash_value = (*itr)[i];
+				//std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
+				//bytevec[idx_value.first] |= idx_value.second;
+			//}
+			//++itr;
+		//}
 	}
 
 	size_t Filter::searchSeq(const std::string& seq) const {
-		ntHashIterator itr(seq, hash_n, kmer_size);
+		std::vector<uint64_t> minimizers = Dna::getMinimizerHashes(seq, kmer_size, hash_n, kmer_size);
 		size_t kmer_hits = 0;
-		
-		while (itr != itr.end()) {
+		for (size_t i = 0; i < minimizers.size(); i += hash_n) {
 			size_t hash_hits = 0;
-			for (size_t i = 0; i < hash_n; i++){
-				uint64_t hash_value = (*itr)[i];
-				std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
+			for (size_t j = i; j < i+hash_n; j++) {
+				std::pair<size_t, uint8_t> idx_value = index_value(minimizers[j], filter_size);
 				if (bytevec[idx_value.first] & idx_value.second) {
 					hash_hits++;
 				}
-			}
-			if (hash_hits == hash_n) {
-				kmer_hits++;
-			}
-			++itr;
+			kmer_hits += (hash_hits/hash_n);
+		}
+		
+		//ntHashIterator itr(seq, hash_n, kmer_size);
+		//while (itr != itr.end()) {
+			//size_t hash_hits = 0;
+			//for (size_t i = 0; i < hash_n; i++){
+				//uint64_t hash_value = (*itr)[i];
+				//std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
+				//if (bytevec[idx_value.first] & idx_value.second) {
+					//hash_hits++;
+				//}
+			//}
+			//if (hash_hits == hash_n) {
+				//kmer_hits++;
+			//}
+			//++itr;
 		}
 		return kmer_hits;
 	}
@@ -175,7 +189,7 @@ namespace Bloom {
 		double res = pow(1 - exp((-k*n_star)/m), k);
 		return res;
 	}
-	void Filter::dfs(std::string current_seq, std::unordered_set<uint64_t> seen_kmer_hashes,
+	void Filter::dfs(std::string current_seq, robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
                  std::vector<std::string>& candidate_seqs,
                  const std::function<std::string(std::string)>& extract_kmer,
                  const std::function<std::string(std::string, char)>& next_seq
@@ -199,7 +213,7 @@ namespace Bloom {
 	}
 
 	void Filter::dfs5prime(const std::string& current_seq,
-			std::unordered_set<uint64_t> seen_kmer_hashes,
+			robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 			std::vector<std::string>& candidate_seqs
 			) const {
 
@@ -213,7 +227,7 @@ namespace Bloom {
 				);
 	}
 	void Filter::dfs3prime(const std::string& current_seq,
-			std::unordered_set<uint64_t> seen_kmer_hashes,
+			robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 			std::vector<std::string>& candidate_seqs
 			) const {
 
@@ -227,10 +241,10 @@ namespace Bloom {
 				);
 	}
 	std::vector<std::string> Filter::extendSeq(const std::string &seq) const {
-		std::unordered_set<uint64_t> seen_kmers_5p;
+		robin_hood::unordered_set<uint64_t> seen_kmers_5p;
 		size_t hash_n_for_dfs = 1;
 		Dna::addKmerHashes(seq, kmer_size, hash_n_for_dfs, seen_kmers_5p);
-		std::unordered_set<uint64_t> seen_kmers_3p = seen_kmers_5p;
+		robin_hood::unordered_set<uint64_t> seen_kmers_3p = seen_kmers_5p;
 		std::vector<std::string> candidate_seqs_5p;
 		std::vector<std::string> candidate_seqs_3p;
 		std::vector<std::string> extended_seqs;
