@@ -82,19 +82,30 @@ namespace Bloom {
 	}
 
 	size_t Filter::searchFastqPair(const Fastq::Pair& fq_pair) const {
-		size_t kmer_hits = searchSeq(fq_pair.first.seq);
-		kmer_hits += searchSeq(fq_pair.second.seq);
+
+		size_t (Filter::*searcher)(const std::string&) const;
+		searcher = 
+			window_size > kmer_size
+			? &Filter::searchMinimizers
+			: &Filter::searchSeq;
+		size_t kmer_hits = (this->*searcher)(fq_pair.first.seq);
+		kmer_hits += (this->*searcher)(fq_pair.second.seq);
+		//size_t kmer_hits = searchSeq(fq_pair.first.seq);
+		//kmer_hits += searchSeq(fq_pair.second.seq);
 		return kmer_hits;
 	}
 
 	void Filter::addFasta(const std::string& fasta_fname, size_t minsize) {
 		Gz::Reader gzrfa(fasta_fname);
 		std::optional<Fasta::Rec> fa_rec = Fasta::nextRecord(gzrfa);
+		void (Filter::*adder)(const std::string&);
+		adder = window_size > kmer_size ? &Filter::addMinimizers : &Filter::addSeq;
 		while (fa_rec) {
 			if (fa_rec) {
 				for (const auto& rec: fa_rec->splitOnMask()) {
 					if (rec.size() >= minsize) {
-						addSeq(rec.seq);
+						//addSeq(rec.seq);
+						(this->*adder)(rec.seq);
 					}
 				}
 			}
@@ -106,14 +117,12 @@ namespace Bloom {
 		Gz::Reader gzrfq(fastq_fname);
 		std::optional<Fastq::Rec> fq_rec = Fastq::nextRecord(gzrfq);
 		size_t counter = 0;
+		void (Filter::*adder)(const std::string&);
+		adder = window_size > kmer_size ? &Filter::addMinimizers : &Filter::addSeq;
 		while (fq_rec) {
 			if (fq_rec) {
-				addSeq(fq_rec->seq);
-				//for (const auto& rec: fq_rec->splitOnMask()) {
-					//if (rec.size() >= minsize) {
-						//addSeq(rec.seq);
-					//}
-				//}
+				//addSeq(fq_rec->seq);
+				(this->*adder)(fq_rec->seq);
 			}
 			fq_rec = Fastq::nextRecord(gzrfq);
 			counter++;
