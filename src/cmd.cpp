@@ -74,7 +74,8 @@ namespace BloomBuild {
 		  "r,reference",
 		  "Reference in fasta or fastq format. Can be supplied multiple times",
 		  cxxopts::value<std::vector<std::string>>())(
-		  "k,klen", "Kmer length to use for filter", cxxopts::value<uint64_t>())(
+		  "k,klen", "Kmer length to use for filter", cxxopts::value<uint64_t>()->default_value("31"))(
+		  "w,wlen", "Window length to use for filter", cxxopts::value<uint64_t>()->default_value("35"))(
 		  "s,size", "filter size in bytes",
 		  cxxopts::value<uint64_t>()->default_value("100000000"))(
 		  "l,seqlen", "Minimum sequence length to use for inserting in filter",
@@ -110,11 +111,12 @@ namespace BloomBuild {
 		return 1;
 	  }
 	  uint64_t klen = result["klen"].as<uint64_t>();
+	  uint64_t wlen = result["wlen"].as<uint64_t>();
 	  uint64_t size = result["size"].as<uint64_t>();
 	  uint64_t seqlen = result["seqlen"].as<uint64_t>();
 	  uint64_t nhash = result["nhash"].as<uint64_t>();
 	  std::string output = result["output"].as<std::string>();
-	  Bloom::Filter blmf = Bloom::Filter(size, klen, nhash);
+	  Bloom::Filter blmf = Bloom::Filter(size, klen, wlen, nhash);
 	  for (const std::string &fname : seq_fnames) {
 		std::cerr << fname << '\n';
 		std::optional<FileFormat> fformat = Fastx::inferFileFormat(fname);

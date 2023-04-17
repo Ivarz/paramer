@@ -14,15 +14,17 @@ namespace Bloom {
 const size_t BITS_IN_BYTE = 8;
 class Filter {
 public:
-  Filter(uint64_t s, uint64_t k, uint64_t h)
-      : filter_size(s), kmer_size(k), hash_n(h) {
+  Filter(uint64_t s, uint64_t k, uint64_t w, uint64_t h)
+      : filter_size(s), kmer_size(k), window_size(w), hash_n(h) {
     bytevec = std::vector<uint8_t>(s, 0);
   }
 
   void addSeq(const std::string &seq);
+  void addMinimizers(const std::string &seq);
   void addFasta(const std::string &fasta_fname, size_t minsize);
   void addFastq(const std::string &fastq_fname, size_t minsize);
   size_t searchSeq(const std::string &seq) const;
+  size_t searchMinimizers(const std::string &seq) const;
   size_t searchFastqPair(const Fastq::Pair &fq_pair) const;
 
   std::vector<std::string> extendSeq(const std::string& seq) const;
@@ -43,6 +45,7 @@ public:
 private:
   uint64_t filter_size; // filter size in bytes
   uint64_t kmer_size;
+  uint64_t window_size;
   uint64_t hash_n;
   std::vector<uint8_t> bytevec;
   void dfs(std::string current_seq,

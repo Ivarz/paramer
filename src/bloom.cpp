@@ -12,8 +12,14 @@ namespace Bloom {
 		uint8_t byte_value = 1 << (bit_idx % BITS_IN_BYTE);
 		return std::pair<size_t, uint8_t>(byte_idx, byte_value);
 	}
+	void Filter::addMinimizers(const std::string& seq) {
+		for (uint64_t minimizer: Dna::getMinimizerHashes(seq, kmer_size, hash_n, window_size)) {
+			std::pair<size_t, uint8_t> idx_value = index_value(minimizer, filter_size);
+			bytevec[idx_value.first] |= idx_value.second;
+		}
+	}
 	void Filter::addSeq(const std::string& seq) {
-		for (uint64_t minimizer: Dna::getMinimizerHashes(seq, kmer_size, hash_n, kmer_size)) {
+		for (uint64_t minimizer: Dna::getHashes(seq, kmer_size, hash_n)) {
 			std::pair<size_t, uint8_t> idx_value = index_value(minimizer, filter_size);
 			bytevec[idx_value.first] |= idx_value.second;
 		}
@@ -28,13 +34,29 @@ namespace Bloom {
 		//}
 	}
 
-	size_t Filter::searchSeq(const std::string& seq) const {
-		std::vector<uint64_t> minimizers = Dna::getMinimizerHashes(seq, kmer_size, hash_n, kmer_size);
+	size_t Filter::searchMinimizers(const std::string& seq) const {
+		std::vector<uint64_t> minimizers = Dna::getMinimizerHashes(seq, kmer_size, hash_n, window_size);
 		size_t kmer_hits = 0;
 		for (size_t i = 0; i < minimizers.size(); i += hash_n) {
 			size_t hash_hits = 0;
 			for (size_t j = i; j < i+hash_n; j++) {
 				std::pair<size_t, uint8_t> idx_value = index_value(minimizers[j], filter_size);
+				if (bytevec[idx_value.first] & idx_value.second) {
+					hash_hits++;
+				}
+				kmer_hits += (hash_hits/hash_n);
+			}
+		}
+		return kmer_hits;
+	}
+
+	size_t Filter::searchSeq(const std::string& seq) const {
+		std::vector<uint64_t> hashes = Dna::getHashes(seq, kmer_size, hash_n);
+		size_t kmer_hits = 0;
+		for (size_t i = 0; i < hashes.size(); i += hash_n) {
+			size_t hash_hits = 0;
+			for (size_t j = i; j < i+hash_n; j++) {
+				std::pair<size_t, uint8_t> idx_value = index_value(hashes[j], filter_size);
 				if (bytevec[idx_value.first] & idx_value.second) {
 					hash_hits++;
 				}
@@ -107,9 +129,11 @@ namespace Bloom {
 		std::ofstream outfh(out_fname, std::ios::out | std::ios::binary);
 		uint64_t fsize = static_cast<uint64_t>(bytevec.size());
 		uint64_t k = static_cast<uint64_t>(kmer_size);
+		uint64_t w = static_cast<uint64_t>(window_size);
 		uint64_t h = static_cast<uint64_t>(hash_n);
 		outfh.write((char*) &fsize, sizeof(fsize));
 		outfh.write((char*) &k, sizeof(k));
+		outfh.write((char*) &w, sizeof(w));
 		outfh.write((char*) &h, sizeof(h));
 		//outfh.write((char*) &out_fname[0], out_fname.size()*sizeof(char));
 		outfh.write((char*) &bytevec[0], filter_size*sizeof(bytevec.at(0)));
@@ -122,9 +146,11 @@ namespace Bloom {
 
 		uint64_t fsize = static_cast<uint64_t>(bytevec.size());
 		uint64_t k = static_cast<uint64_t>(kmer_size);
+		uint64_t w = static_cast<uint64_t>(window_size);
 		uint64_t h = static_cast<uint64_t>(hash_n);
 		gzwriter.write(&fsize, sizeof(fsize));
 		gzwriter.write(&k, sizeof(k));
+		gzwriter.write(&k, sizeof(w));
 		gzwriter.write(&h, sizeof(h));
 		return gzwriter.bufferedWrite(bytevec);
 	}
@@ -132,15 +158,17 @@ namespace Bloom {
 	std::optional<Filter> Filter::loadRaw(const std::string& in_fname) {
 		uint64_t filter_size = 0;
 		uint64_t kmer_size = 0;
+		uint64_t window_size = 0;
 		uint64_t hash_n = 0;
 
 		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
 		infh.read(reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
 		infh.read(reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
+		infh.read(reinterpret_cast<char*>(&window_size), sizeof(uint64_t));
 		infh.read(reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
 
 		// Read the remaining data into a vector<uint8_t>
-		Filter result = Filter(filter_size, kmer_size, hash_n);
+		Filter result = Filter(filter_size, kmer_size, window_size, hash_n);
 		infh.read(reinterpret_cast<char*>(result.bytevec.data()), filter_size);
 
 		// Close the file
@@ -152,18 +180,20 @@ namespace Bloom {
 
 		uint64_t filter_size = 0;
 		uint64_t kmer_size = 0;
+		uint64_t window_size = 0;
 		uint64_t hash_n = 0;
 
 		Gz::Reader gz_reader(in_fname);
 
 		gz_reader.read(&filter_size, sizeof(uint64_t));
 		gz_reader.read(&kmer_size, sizeof(uint64_t));
+		gz_reader.read(&window_size, sizeof(uint64_t));
 		gz_reader.read(&hash_n, sizeof(uint64_t));
 
 		// Read the remaining data into a vector<uint8_t>
 		auto bufload = gz_reader.bufferedLoad(filter_size);
 		if (bufload) {
-			Filter result = Filter(0, 0, 0);
+			Filter result = Filter(0, 0, 0, 0);
 			result.filter_size = filter_size;
 			result.kmer_size = kmer_size;
 			result.hash_n = hash_n;
