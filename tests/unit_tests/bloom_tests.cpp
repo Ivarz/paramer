@@ -3,14 +3,14 @@
 #include "bit_lookup.h"
 #include <cstdio>
 
-TEST_CASE("Test constructor") {
+TEST_CASE("Test Bloom::Filter constructor") {
 	Bloom::Filter t1 = Bloom::Filter(1000, 31, 31, 3);
 	CHECK(t1.size() == 1000);
 	CHECK(t1.kmerSize() == 31);
 	CHECK(t1.hashN() == 3);
 }
 
-TEST_CASE("Test bit lookup table") {
+TEST_CASE("Test BitLookup::BIT_COUNT table") {
 	for (size_t i = 1; i < 256; i++){
 		uint8_t table_value = BitLookup::BIT_COUNT[i];
 		unsigned int calculated_value = 0;
@@ -23,7 +23,7 @@ TEST_CASE("Test bit lookup table") {
 	}
 }
 
-TEST_CASE("Test setBitsCount") {
+TEST_CASE("Test Bloom::Filter::setBitsCount") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
 	CHECK(t0_bloom.setBitsCount() == 0);
 
@@ -38,7 +38,7 @@ TEST_CASE("Test setBitsCount") {
 	CHECK(t2_bloom.setBitsCount() == 3);
 }
 
-TEST_CASE("Test addSeq") {
+TEST_CASE("Test Bloom::Filter::addSeq") {
 	std::string t0_seq = "";
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
 	t0_bloom.addSeq(t0_seq);
@@ -54,7 +54,7 @@ TEST_CASE("Test addSeq") {
 	CHECK(t1_bloom.at(t1_byte_idx) == byte_value);
 }
 
-TEST_CASE("Test write and load") {
+TEST_CASE("Test Bloom::Filter::write and Bloom::Filter::load") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
 	t0_bloom.write("test_data/t0.blm");
 	std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
@@ -80,7 +80,7 @@ TEST_CASE("Test write and load") {
 	CHECK(t1_bloom_load->at(999) == 255);
 }
 
-TEST_CASE("Test write and load Raw") {
+TEST_CASE("Test Bloom::Filter::writeRaw and Bloom::Filter::loadRaw") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
 	t0_bloom.writeRaw("test_data/t0.blm");
 	std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::loadRaw("test_data/t0.blm");
@@ -106,7 +106,7 @@ TEST_CASE("Test write and load Raw") {
 	CHECK(t1_bloom_load->at(999) == 255);
 }
 
-TEST_CASE ("Test extendSeq") {
+TEST_CASE ("Test Bloom::Filter::extendSeq") {
 	{
 		Bloom::Filter t1_bloom = Bloom::Filter(1000, 31, 31, 3);
 		std::string t1_seq1 = "GAACTCTTAGACGGTGCAAGCGCAGAATTTGACATGGATCTTGTATCAAAGGGAGAACTTTCACCTGTATTTTTCGGTTCTGCACTGACAAATTTTGGTGTGGAAACATTTTTAAAACATTTTTTACAGATGACATATTCTCCATTGCCA";

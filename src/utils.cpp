@@ -55,10 +55,6 @@ namespace Gz {
 		}
 		auto retval = gzgets(file_handler, buffer, static_cast<int>(buf_size));
 		std::string line(buffer);
-		while (!trimNewlineInplace(line)) {
-			retval = gzgets(file_handler, buffer, static_cast<int>(buf_size));
-			line += std::string(buffer);
-		}
 		if (buffer == NULL) {
 			std::cerr << "Failed to read\n";
 			state = ReaderState::ERROR;
@@ -68,6 +64,10 @@ namespace Gz {
 			std::string line = "";
 			return line;
 		} else {
+			while (!trimNewlineInplace(line)) {
+				retval = gzgets(file_handler, buffer, static_cast<int>(buf_size));
+				line += std::string(buffer);
+			}
 			trimNewlineInplace(line);
 			last_line = line;
 			return line;

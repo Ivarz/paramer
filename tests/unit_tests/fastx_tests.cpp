@@ -1,5 +1,46 @@
 #include "doctest.h"
 #include "fastx.h"
+#include "kraken2.h"
+
+TEST_CASE("Testing Fasta::nextRecord") {
+	{
+		Gz::Reader reader("test_data/empty.fa");
+		std::optional<Fasta::Rec> rec = Fasta::nextRecord(reader);
+		CHECK(!rec);
+	}
+	{
+		Gz::Reader reader("test_data/t1.fa.gz");
+		std::optional<Fasta::Rec> rec1 = Fasta::nextRecord(reader);
+		std::optional<Fasta::Rec> rec2 = Fasta::nextRecord(reader);
+		std::optional<Fasta::Rec> rec3 = Fasta::nextRecord(reader);
+		std::optional<Fasta::Rec> rec4 = Fasta::nextRecord(reader);
+		std::optional<Fasta::Rec> rec_end = Fasta::nextRecord(reader);
+		CHECK(rec1->seq_id == "EVEC_sCAffold0000001 lenGTh=176877");
+		CHECK(rec1->seq.size() == 176877);
+		CHECK(rec2->seq_id == "EVEC_sCAffold0000002 lenGTh=165254");
+		CHECK(rec2->seq.size() == 165254);
+		CHECK(rec3->seq_id == "EVEC_sCAffold0000003 lenGTh=155333");
+		CHECK(rec3->seq.size() == 155333);
+		CHECK(rec4->seq_id == "EVEC_sCAffold0000004 lenGTh=147707");
+		CHECK(rec4->seq.size() == 147707);
+		CHECK(!rec_end);
+	}
+}
+
+TEST_CASE("Testing Fasta::softmaskWithKraken2") {
+	{
+		Gz::Reader k2_reader("test_data/t3.k2out.txt");
+		Gz::Reader fa_reader("test_data/t1.fa.gz");
+		std::optional<Kraken2::Rec> krec1 = Kraken2::nextRecord(k2_reader);
+		std::optional<Fasta::Rec> farec1 = Fasta::nextRecord(fa_reader);
+		CHECK(farec1->seq.substr(0,60) == "GCAAAAAAGTAAACAAAAAGCAAAACAAACAGAAAAAAAAGAAAAAAATATTTGTTTTTT");
+		CHECK(farec1->seq.substr(1729,70) == "AAAGACTGACTGTTTAATTGTATTTTAACGTATCCCACTTCGAACCTCTAACAACTGCGGGGCGATATCG");
+		farec1->softmaskWithKraken2(*krec1, 35);
+		CHECK(farec1->seq.substr(0,60) == "gcaaaaaagtaaacaaaaagcaaaacaaacagaaaaaaaagaaaaaaataTTTGTTTTTT");
+		CHECK(farec1->seq.substr(1729,70) == "AAAGACTGACtgtttaattgtattttaacgtatcccacttcgaacctctaacaactgcggGGCGATATCG");
+
+	}
+}
 
 TEST_CASE("Testing Fastq::nextRecord") {
 

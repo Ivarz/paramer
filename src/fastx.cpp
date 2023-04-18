@@ -116,10 +116,9 @@ namespace Fasta {
 			if (p.first != "0"){
 				size_t beg = kmer_pos;
 				size_t end = kmer_pos + (p.second ? p.second - 1 : p.second) + kmer_size;
-
 				Dna::softmask(seq, beg, end);
-				kmer_pos += p.second;
 			}
+			kmer_pos += p.second;
 		}
 		return;
 	}

@@ -21,8 +21,8 @@ namespace Kraken2 {
 			   );
 			void print() const;
 			const std::vector<TaxaKmerPair>& getR1Kmers() const { return r1_kmers; }
+			const std::vector<TaxaKmerPair>& getR2Kmers() const { return r2_kmers; }
 			std::string seq_id;
-		private:
 			bool classified;
 			std::string taxid;
 			bool paired_end;

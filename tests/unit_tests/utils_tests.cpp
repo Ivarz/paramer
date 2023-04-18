@@ -1,7 +1,7 @@
 #include "doctest.h"
 #include "utils.h"
 
-TEST_CASE("Test trimNewlineInplace") {
+TEST_CASE("Test Gz::trimNewlineInplace") {
 	std::string t1 = "";
 	trimNewlineInplace(t1);
 	CHECK(t1 == "");

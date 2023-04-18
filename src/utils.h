@@ -34,7 +34,7 @@ namespace Gz {
 		private:
 			Reader& operator=(const Reader&);
 
-			const size_t buf_size = 4096;
+			const size_t buf_size = 8192;
 			std::string file_name;
 			gzFile file_handler;
 			char* buffer;
