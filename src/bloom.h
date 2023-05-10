@@ -28,6 +28,7 @@ public:
   size_t searchFastqPair(const Fastq::Pair &fq_pair) const;
 
   std::vector<std::string> extendSeq(const std::string& seq) const;
+  std::vector<std::string> extendSeqPair(const std::string& seq1, const std::string& seq2) const;
 
   void writeRaw(const std::string &out_fname) const;
   int write(const std::string &out_fname) const;

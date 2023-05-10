@@ -133,4 +133,9 @@ namespace Gz {
 		}
 		return 0;
 	}
+	int Writer::writeLine(const std::string& str) {
+		std::vector<uint8_t> data(str.begin(), str.end());
+		data.push_back('\n');
+		return bufferedWrite(data);
+	}
 }

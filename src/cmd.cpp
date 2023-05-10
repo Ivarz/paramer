@@ -151,8 +151,10 @@ namespace BloomSearch {
 							cxxopts::value<std::string>())(
 		  "s,sequence", "Sequence to search",
 		  cxxopts::value<std::string>()->default_value(""))(
-		  "1,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())(
-		  "2,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "i,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "I,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "o,out-mates1", "Otput file of reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "O,out-mates2", "Otput file of reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())(
 		  "c,mincount", "minimum number of matching kmers for hit",
 		  cxxopts::value<size_t>()->default_value("50"))(
 		  "u,unpaired", "Single end reads",
@@ -176,10 +178,15 @@ namespace BloomSearch {
 
 	  std::string mates1_fname = result["mates1"].as<std::string>();
 	  std::string mates2_fname = result["mates2"].as<std::string>();
+	  std::string out_mates1_fname = result["out-mates1"].as<std::string>();
+	  std::string out_mates2_fname = result["out-mates2"].as<std::string>();
 	  size_t hit_threshold = result["mincount"].as<size_t>();
 
 	  Gz::Reader mates1_reader = Gz::Reader(mates1_fname);
 	  Gz::Reader mates2_reader = Gz::Reader(mates2_fname);
+
+	  Gz::Writer mates1_writer = Gz::Writer(out_mates1_fname);
+	  Gz::Writer mates2_writer = Gz::Writer(out_mates2_fname);
 
 	  std::optional<Fastq::Pair> curr_rec_pair =
 		  Fastq::nextRecordPair(mates1_reader, mates2_reader);
@@ -187,9 +194,10 @@ namespace BloomSearch {
 	  while (curr_rec_pair) {
 		size_t kmer_hits = bloom_filter->searchFastqPair(*curr_rec_pair);
 		if (kmer_hits >= hit_threshold) {
+			Fastq::writeRecordPair(mates1_writer, mates2_writer, *curr_rec_pair);
 		  // std::cout << "Kmer hits\t" << kmer_hits << '\n';
-		  curr_rec_pair->first.print();
-		  curr_rec_pair->second.print();
+		  //curr_rec_pair->first.print();
+		  //curr_rec_pair->second.print();
 		}
 		curr_rec_pair = Fastq::nextRecordPair(mates1_reader, mates2_reader);
 	  }
@@ -203,11 +211,12 @@ namespace Extend {
 
 	  cxxopts::Options options("extend",
 							   "Extend sequence in 3' and 5' directions with kmers found in Bloom's filter");
-	  options.add_options()("b,bloom", "Bloom filter",
-							cxxopts::value<std::string>())(
-		  "s,sequence", "Sequence to search",
-		  cxxopts::value<std::string>()->default_value(""))("h,help",
-															"Help message");
+	  options.add_options()("b,bloom", "Bloom filter", cxxopts::value<std::string>())
+		  ( "s,sequence", "Sequence to search", cxxopts::value<std::string>()->default_value(""))
+		  ("1,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())
+		  ("2,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())
+		  ("u,unpaired", "Unpaired reads in (fastq(.gz))", cxxopts::value<std::string>())
+		  ("h,help", "Help message");
 
 	  if (argc < 3) {
 		print_help(options);
@@ -218,13 +227,47 @@ namespace Extend {
 	  std::string bloom_filter_name = result["bloom"].as<std::string>();
 
 	  std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
-	  if (bloom_filter) {
-		  std::vector<std::string> candidate_seqs =  bloom_filter->extendSeq(seq);
+	  if (!bloom_filter) {
+		  std::cerr << "Failed to load bloom filter\n";
+		  return 1;
+	  } 
+	  if (result.count("sequence")) {
+		  std::vector<std::string> candidate_seqs = bloom_filter->extendSeq(seq);
 		  for (const auto& seq: candidate_seqs) {
 			  std::cout << seq << '\n';
 		  }
-	  } else {
-		  std::cerr << "Failed to load bloom filter\n";
+	  }
+	  if (result.count("mates1") && result.count("mates2")) {
+		  std::string mates1_fname = result["mates1"].as<std::string>();
+		  std::string mates2_fname = result["mates2"].as<std::string>();
+		  Gz::Reader mates1_reader = Gz::Reader(mates1_fname);
+		  Gz::Reader mates2_reader = Gz::Reader(mates2_fname);
+
+		  std::optional<Fastq::Pair> curr_rec_pair =
+			  Fastq::nextRecordPair(mates1_reader, mates2_reader);
+
+		  while (curr_rec_pair) {
+			std::vector<std::string> candidate_seqs = bloom_filter->extendSeqPair(curr_rec_pair->first.seq, curr_rec_pair->second.seq);
+			for (const auto& seq: candidate_seqs) {
+				std::cout << seq << '\n';
+			}
+			curr_rec_pair = Fastq::nextRecordPair(mates1_reader, mates2_reader);
+		  }
+	  }
+	  if (result.count("unpaired")) {
+		  std::string unpaired_fname = result["unpaired"].as<std::string>();
+		  Gz::Reader unpaired_reader = Gz::Reader(unpaired_fname);
+
+		  std::optional<Fastq::Rec> curr_rec =
+			  Fastq::nextRecord(unpaired_reader);
+
+		  while (curr_rec) {
+			std::vector<std::string> candidate_seqs = bloom_filter->extendSeq(curr_rec->seq);
+			for (const auto& seq: candidate_seqs) {
+				std::cout << seq << '\n';
+			}
+			curr_rec = Fastq::nextRecord(unpaired_reader);
+		  }
 	  }
 
 	  return 0;

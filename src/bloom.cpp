@@ -301,4 +301,23 @@ namespace Bloom {
 		return extended_seqs;
 	}
 
+	std::vector<std::string> Filter::extendSeqPair(const std::string &seq1,const std::string &seq2 ) const {
+		std::vector<std::string> result{};
+		std::vector<std::string> candidates_mate1 = extendSeq(seq1);
+		std::vector<std::string> candidates_mate2 = extendSeq(seq2);
+		const std::string seq1_rc = Dna::revcom(seq1);
+		const std::string seq2_rc = Dna::revcom(seq2);
+		for (auto c1: candidates_mate1) {
+			if (c1.find(seq2) != std::string::npos ||c1.find(seq2_rc) != std::string::npos) {
+				result.push_back(c1);
+			}
+		}
+		for (auto c2: candidates_mate1) {
+			if (c2.find(seq1) != std::string::npos ||c2.find(seq1_rc) != std::string::npos) {
+				result.push_back(c2);
+			}
+		}
+		return result;
+	}
+
 }

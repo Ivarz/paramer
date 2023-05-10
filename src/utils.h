@@ -49,6 +49,7 @@ namespace Gz {
 			int write(void* buff, size_t bytes);
 			~Writer();
 			int bufferedWrite(const std::vector<uint8_t>& data);
+			int writeLine(const std::string& str);
 		private:
 			std::string file_name;
 			gzFile file_handler;

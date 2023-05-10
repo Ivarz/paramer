@@ -54,6 +54,27 @@ TEST_CASE("Test Bloom::Filter::addSeq") {
 	CHECK(t1_bloom.at(t1_byte_idx) == byte_value);
 }
 
+TEST_CASE("Test Bloom::Filter::searchSeq") {
+	{
+		std::string seq = "AGTGCGTCGTCGTCGTCAGAGTGAAAACGTGCGCATGACTGACTGACTGACGTACAGGAA";
+		Bloom::Filter bloom = Bloom::Filter(1000, 31, 31, 3);
+		bloom.addSeq(seq);
+		size_t result = bloom.searchSeq(seq);
+		CHECK(result == 30);
+	}
+}
+
+TEST_CASE("Test Bloom::Filter::searchMinimizers") {
+	{
+		std::string seq = "AGTGCGTCGTCGTCGTCAGAGTGAAAACGTGCGCATGACTGACTGACTGACGTACAGGAA";
+		Bloom::Filter bloom = Bloom::Filter(1000, 31, 35, 3);
+		bloom.addSeq(seq);
+		size_t result = bloom.searchMinimizers(seq);
+		CHECK(result == 26);
+	}
+}
+
+
 TEST_CASE("Test Bloom::Filter::write and Bloom::Filter::load") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
 	t0_bloom.write("test_data/t0.blm");

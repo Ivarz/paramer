@@ -52,6 +52,27 @@ namespace Fastq {
 		}
 	}
 
+	int writeRecord(Gz::Writer &gzw, const Rec &rec) {
+		gzw.writeLine(rec.seq_id);
+		gzw.writeLine(rec.seq);
+		gzw.writeLine("+");
+		gzw.writeLine(rec.qual);
+		return 0;
+	}
+	int writeRecordPair(Gz::Writer &gzw1, Gz::Writer &gzw2, const Pair &rec_pair) {
+		int errors = 0;
+		errors |= gzw1.writeLine(rec_pair.first.seq_id);
+		errors |= gzw1.writeLine(rec_pair.first.seq);
+		errors |= gzw1.writeLine("+");
+		errors |= gzw1.writeLine(rec_pair.first.qual);
+
+		errors |= gzw2.writeLine(rec_pair.second.seq_id);
+		errors |= gzw2.writeLine(rec_pair.second.seq);
+		errors |= gzw2.writeLine("+");
+		errors |= gzw2.writeLine(rec_pair.second.qual);
+		return errors;
+	}
+
 	std::vector<Rec> Rec::splitOnMask() const {
 		std::vector<Rec> result;
 		std::vector<std::string> split_seqs = Dna::splitOnMask(seq);
@@ -61,6 +82,7 @@ namespace Fastq {
 		}
 		return result;
 	}
+
 }
 
 namespace Fasta {

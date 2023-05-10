@@ -32,6 +32,9 @@ namespace Fastq {
 
 	std::optional<Rec> nextRecord(Gz::Reader& gzr);
 	std::optional<Pair> nextRecordPair(Gz::Reader& gzr1, Gz::Reader& gzr2);
+
+	int writeRecord(Gz::Writer& gzw, const Rec& rec);
+	int writeRecordPair(Gz::Writer& gzw1, Gz::Writer& gzw2, const Pair& rec_pair);
 }
 
 namespace Fasta {
