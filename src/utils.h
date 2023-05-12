@@ -8,7 +8,10 @@
 #include <vector>
 #include <optional>
 
-bool trimNewlineInplace(std::string& str);
+namespace Utils {
+	bool trimNewlineInplace(std::string& str);
+	size_t dataSizeToBytes(std::string str);
+}
 
 namespace Gz {
 	enum class ReaderState {

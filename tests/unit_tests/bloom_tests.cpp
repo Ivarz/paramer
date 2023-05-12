@@ -75,6 +75,29 @@ TEST_CASE("Test Bloom::Filter::searchMinimizers") {
 }
 
 
+TEST_CASE("Test Bloom::Filter::searchFastqPair") {
+	{
+		Gz::Reader reader1 = Gz::Reader("test_data/test.sub.1.fq.gz");
+		Gz::Reader reader2 = Gz::Reader("test_data/test.sub.2.fq.gz");
+		std::optional<Fastq::Pair> rec_pair = Fastq::nextRecordPair(reader1, reader2);
+		std::string seq = "AATTTGACATGGATCTTGTATCAAAGGGAGAACTTTCACCTGTATTTTTCGGTTCTGCAC"; //subsequence from test.sub.1.fq.gz
+		Bloom::Filter bloom = Bloom::Filter(1000, 31, 31, 3);
+		bloom.addSeq(seq);
+		size_t result = bloom.searchFastqPair(*rec_pair);
+		CHECK(result == 30);
+	}
+	{
+		Gz::Reader reader1 = Gz::Reader("test_data/test.sub.1.fq.gz");
+		Gz::Reader reader2 = Gz::Reader("test_data/test.sub.2.fq.gz");
+		std::optional<Fastq::Pair> rec_pair = Fastq::nextRecordPair(reader1, reader2);
+		std::string seq = "ATTTACCGGAACAGATACGCATAAATGCGATCCTGTCCCTGTGGTTTTTATTCATATTTG"; //subsequence from test.sub.2.fq.gz
+		Bloom::Filter bloom = Bloom::Filter(1000, 31, 31, 3);
+		bloom.addSeq(seq);
+		size_t result = bloom.searchFastqPair(*rec_pair);
+		CHECK(result == 30);
+	}
+}
+
 TEST_CASE("Test Bloom::Filter::write and Bloom::Filter::load") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
 	t0_bloom.write("test_data/t0.blm");

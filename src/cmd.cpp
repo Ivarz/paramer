@@ -76,8 +76,8 @@ namespace BloomBuild {
 		  cxxopts::value<std::vector<std::string>>())(
 		  "k,klen", "Kmer length to use for filter", cxxopts::value<uint64_t>()->default_value("31"))(
 		  "w,wlen", "Window length to use for filter", cxxopts::value<uint64_t>()->default_value("35"))(
-		  "s,size", "filter size in bytes",
-		  cxxopts::value<uint64_t>()->default_value("100000000"))(
+		  "s,size", "filter size in bytes, kilobytes, megabytes or gigabytes (suffixes K,M,G)",
+		  cxxopts::value<std::string>()->default_value("100000000"))(
 		  "l,seqlen", "Minimum sequence length to use for inserting in filter",
 		  cxxopts::value<uint64_t>()->default_value("100"))(
 		  "n,nhash", "Number of hashes to use", cxxopts::value<uint64_t>())(
@@ -112,7 +112,8 @@ namespace BloomBuild {
 	  }
 	  uint64_t klen = result["klen"].as<uint64_t>();
 	  uint64_t wlen = result["wlen"].as<uint64_t>();
-	  uint64_t size = result["size"].as<uint64_t>();
+	  std::string size_str = result["size"].as<std::string>();
+	  uint64_t size = Utils::dataSizeToBytes(size_str);
 	  uint64_t seqlen = result["seqlen"].as<uint64_t>();
 	  uint64_t nhash = result["nhash"].as<uint64_t>();
 	  std::string output = result["output"].as<std::string>();

@@ -2,30 +2,41 @@
 #include "utils.h"
 #include <cstdio>
 
-TEST_CASE("Test Gz::trimNewlineInplace") {
+TEST_CASE("Test Utils::trimNewlineInplace") {
 	std::string t1 = "";
-	trimNewlineInplace(t1);
+	Utils::trimNewlineInplace(t1);
 	CHECK(t1 == "");
 
 	std::string t2 = "\n";
-	trimNewlineInplace(t2);
+	Utils::trimNewlineInplace(t2);
 	CHECK(t2 == "");
 
 	std::string t3 = "\r\n";
-	trimNewlineInplace(t3);
+	Utils::trimNewlineInplace(t3);
 	CHECK(t3 == "");
 
 	std::string t4 = "atg";
-	trimNewlineInplace(t4);
+	Utils::trimNewlineInplace(t4);
 	CHECK(t4 == "atg");
 
 	std::string t5 = "atg\n";
-	trimNewlineInplace(t5);
+	Utils::trimNewlineInplace(t5);
 	CHECK(t5 == "atg");
 
 	std::string t6 = "atg\r\n";
-	trimNewlineInplace(t6);
+	Utils::trimNewlineInplace(t6);
 	CHECK(t6 == "atg");
+}
+
+TEST_CASE("Test Utils::dataSizeToBytes") {
+	CHECK(Utils::dataSizeToBytes("") == 0);
+	CHECK(Utils::dataSizeToBytes("1000") == 1000);
+	CHECK(Utils::dataSizeToBytes("1K") == 1024);
+	CHECK(Utils::dataSizeToBytes("1M") == 1024*1024);
+	CHECK(Utils::dataSizeToBytes("1G") == 1024*1024*1024);
+	CHECK(Utils::dataSizeToBytes("13K") == 13*1024);
+	CHECK(Utils::dataSizeToBytes("13M") == 13*1024*1024);
+	CHECK(Utils::dataSizeToBytes("13G") == (size_t)13*1024*1024*1024);
 }
 
 TEST_CASE("Test Gz::Writer::writeLine") {

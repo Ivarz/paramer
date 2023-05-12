@@ -1,15 +1,45 @@
 #include "utils.h"
+#include <array>
+namespace Utils {
+	bool trimNewlineInplace(std::string& str) {
+		size_t input_size = str.size();
+		str.erase(
+				std::remove(str.begin(), str.end(), '\n')
+				, str.end());
+		str.erase(
+				std::remove(str.begin(), str.end(), '\r')
+				, str.end());
+		size_t output_size = str.size();
+		return output_size != input_size;
+	}
 
-bool trimNewlineInplace(std::string& str) {
-	size_t input_size = str.size();
-	str.erase(
-			std::remove(str.begin(), str.end(), '\n')
-			, str.end());
-	str.erase(
-			std::remove(str.begin(), str.end(), '\r')
-			, str.end());
-	size_t output_size = str.size();
-	return output_size != input_size;
+	size_t dataSizeToBytes(std::string str) {
+		std::array<size_t, 256> modifiers = {0};
+		std::fill_n(modifiers.begin(), 256, 1);
+		modifiers['k'] = 1024;
+		modifiers['K'] = 1024;
+		modifiers['m'] = 1024*modifiers['k'];
+		modifiers['M'] = 1024*modifiers['K'];
+		modifiers['g'] = 1024*modifiers['m'];
+		modifiers['G'] = 1024*modifiers['M'];
+		modifiers['t'] = 1024*modifiers['t'];
+		modifiers['T'] = 1024*modifiers['T'];
+
+		if (str.size() == 0) {
+			return 0;
+		}
+
+		char size_unit = str[str.size()-1];
+		size_t value_str_size = size_unit <= '9' ? str.size() : str.size() - 1;
+
+		std::string size_value_str = str.substr(0, value_str_size);
+		std::stringstream sstream(size_value_str);
+
+		size_t result = 0;
+		sstream >> result;
+		
+		return modifiers[size_unit]*result;
+	}
 }
 
 namespace Gz {
@@ -64,11 +94,11 @@ namespace Gz {
 			std::string line = "";
 			return line;
 		} else {
-			while (!trimNewlineInplace(line)) {
+			while (!Utils::trimNewlineInplace(line)) {
 				retval = gzgets(file_handler, buffer, static_cast<int>(buf_size));
 				line += std::string(buffer);
 			}
-			trimNewlineInplace(line);
+			Utils::trimNewlineInplace(line);
 			last_line = line;
 			return line;
 		}

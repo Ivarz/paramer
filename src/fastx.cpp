@@ -115,7 +115,7 @@ namespace Fasta {
 		std::string tmp_buffer = gzr.last_line;
 		std::string seq_id = tmp_buffer.size() > 0 && tmp_buffer[0] == '>'
 			? tmp_buffer : gzr.nextLine();
-		trimNewlineInplace(seq_id);
+		Utils::trimNewlineInplace(seq_id);
 		std::string curr_line = gzr.nextLine();
 		std::string seq = "";
 
