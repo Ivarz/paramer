@@ -180,20 +180,6 @@ namespace Fasta {
 					}
 				}
 			}
-			//for (Fasta::Rec seq: rec->splitOnMask()) {
-				//if (seq.size() >= kmer_size) {
-					////std::cerr << seq.seq <<'\n';
-					//ntHashIterator itr(seq.seq, hash_n, kmer_size);
-					//size_t beg = 0;
-					//while (itr != itr.end()) {
-						//uint64_t hash_value = (*itr)[0];
-						//std::string curr_seq = seq.seq.substr(beg, kmer_size);
-						//result.insert(hash_value);
-						//++itr;
-						//++beg;
-					//}
-				//}
-			//}
 			rec = Fasta::nextRecord(fh);
 		}
 		return result;

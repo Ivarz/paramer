@@ -23,15 +23,6 @@ namespace Bloom {
 			std::pair<size_t, uint8_t> idx_value = index_value(minimizer, filter_size);
 			bytevec[idx_value.first] |= idx_value.second;
 		}
-		//ntHashIterator itr(seq, hash_n, kmer_size);
-		//while (itr != itr.end()) {
-			//for (size_t i = 0; i < hash_n; i++){
-				//uint64_t hash_value = (*itr)[i];
-				//std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
-				//bytevec[idx_value.first] |= idx_value.second;
-			//}
-			//++itr;
-		//}
 	}
 
 	size_t Filter::searchMinimizers(const std::string& seq) const {
@@ -60,23 +51,8 @@ namespace Bloom {
 				if (bytevec[idx_value.first] & idx_value.second) {
 					hash_hits++;
 				}
+			}
 			kmer_hits += (hash_hits/hash_n);
-		}
-		
-		//ntHashIterator itr(seq, hash_n, kmer_size);
-		//while (itr != itr.end()) {
-			//size_t hash_hits = 0;
-			//for (size_t i = 0; i < hash_n; i++){
-				//uint64_t hash_value = (*itr)[i];
-				//std::pair<size_t, uint8_t> idx_value = index_value(hash_value, filter_size);
-				//if (bytevec[idx_value.first] & idx_value.second) {
-					//hash_hits++;
-				//}
-			//}
-			//if (hash_hits == hash_n) {
-				//kmer_hits++;
-			//}
-			//++itr;
 		}
 		return kmer_hits;
 	}
@@ -134,12 +110,15 @@ namespace Bloom {
 	}
 
 
-	void Filter::writeRaw(const std::string& out_fname) const {
+	int Filter::writeRaw(const std::string& out_fname) const {
 		std::ofstream outfh(out_fname, std::ios::out | std::ios::binary);
+		uint8_t magic_byte = 0;
 		uint64_t fsize = static_cast<uint64_t>(bytevec.size());
 		uint64_t k = static_cast<uint64_t>(kmer_size);
 		uint64_t w = static_cast<uint64_t>(window_size);
 		uint64_t h = static_cast<uint64_t>(hash_n);
+		outfh.write((char*) &magic_byte, sizeof(magic_byte));
+		outfh.write((char*) &magic_byte, sizeof(magic_byte));
 		outfh.write((char*) &fsize, sizeof(fsize));
 		outfh.write((char*) &k, sizeof(k));
 		outfh.write((char*) &w, sizeof(w));
@@ -147,9 +126,10 @@ namespace Bloom {
 		//outfh.write((char*) &out_fname[0], out_fname.size()*sizeof(char));
 		outfh.write((char*) &bytevec[0], filter_size*sizeof(bytevec.at(0)));
 		outfh.close();
+		return 0;
 	}
 
-	int Filter::write(const std::string& out_fname) const {
+	int Filter::writeGz(const std::string& out_fname) const {
 		Gz::Writer gzwriter(out_fname);
 		//gzFile fp = gzopen(out_fname.c_str(),"wb");
 
@@ -164,13 +144,24 @@ namespace Bloom {
 		return gzwriter.bufferedWrite(bytevec);
 	}
 
+	int Filter::write(const std::string& out_fname, Compression cmpr) const {
+		if (cmpr == Compression::GZ) {
+			return writeGz(out_fname);
+		} else {
+			return writeRaw(out_fname);
+		}
+	}
+
 	std::optional<Filter> Filter::loadRaw(const std::string& in_fname) {
+		uint8_t magic_byte = 0;
 		uint64_t filter_size = 0;
 		uint64_t kmer_size = 0;
 		uint64_t window_size = 0;
 		uint64_t hash_n = 0;
 
 		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
+		infh.read(reinterpret_cast<char*>(&magic_byte), sizeof(magic_byte));
+		infh.read(reinterpret_cast<char*>(&magic_byte), sizeof(magic_byte));
 		infh.read(reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
 		infh.read(reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
 		infh.read(reinterpret_cast<char*>(&window_size), sizeof(uint64_t));
@@ -185,7 +176,7 @@ namespace Bloom {
 		return result;
 	}
 
-	std::optional<Filter> Filter::load(const std::string& in_fname) {
+	std::optional<Filter> Filter::loadGz(const std::string& in_fname) {
 
 		uint64_t filter_size = 0;
 		uint64_t kmer_size = 0;
@@ -211,6 +202,14 @@ namespace Bloom {
 			//return std::move(result);
 		} else {
 			return {};
+		}
+	}
+	std::optional<Filter> Filter::load(const std::string& in_fname) {
+		Bloom::Compression cmpr = Filter::inferCompression(in_fname);
+		if (cmpr == Bloom::Compression::GZ) {
+			return Filter::loadGz(in_fname);
+		} else {
+			return Filter::loadRaw(in_fname);
 		}
 	}
 	size_t Filter::setBitsCount() const {
@@ -318,6 +317,20 @@ namespace Bloom {
 			}
 		}
 		return result;
+	}
+
+	Bloom::Compression Filter::inferCompression(const std::string &in_fname) {
+		uint8_t magic_byte1 = 0;
+		uint8_t magic_byte2 = 0;
+
+		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
+		infh.read(reinterpret_cast<char*>(&magic_byte1), sizeof(magic_byte1));
+		infh.read(reinterpret_cast<char*>(&magic_byte2), sizeof(magic_byte2));
+		if (magic_byte1 == 0x1f && magic_byte2 == 0x8b) {
+			return Bloom::Compression::GZ;
+		} else {
+			return Bloom::Compression::RAW;
+		}
 	}
 
 }

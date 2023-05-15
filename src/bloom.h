@@ -12,6 +12,11 @@
 
 namespace Bloom {
 const size_t BITS_IN_BYTE = 8;
+enum class Compression {
+	RAW,
+	GZ,
+};
+
 class Filter {
 public:
   Filter(uint64_t s, uint64_t k, uint64_t w, uint64_t h)
@@ -19,21 +24,24 @@ public:
     bytevec = std::vector<uint8_t>(s, 0);
   }
 
-  void addSeq(const std::string &seq);
-  void addMinimizers(const std::string &seq);
-  void addFasta(const std::string &fasta_fname, size_t minsize);
-  void addFastq(const std::string &fastq_fname, size_t minsize);
-  size_t searchSeq(const std::string &seq) const;
-  size_t searchMinimizers(const std::string &seq) const;
-  size_t searchFastqPair(const Fastq::Pair &fq_pair) const;
+  void addSeq(const std::string& seq);
+  void addMinimizers(const std::string& seq);
+  void addFasta(const std::string& fasta_fname, size_t minsize);
+  void addFastq(const std::string& fastq_fname, size_t minsize);
+  size_t searchSeq(const std::string& seq) const;
+  size_t searchMinimizers(const std::string& seq) const;
+  size_t searchFastqPair(const Fastq::Pair& fq_pair) const;
 
   std::vector<std::string> extendSeq(const std::string& seq) const;
   std::vector<std::string> extendSeqPair(const std::string& seq1, const std::string& seq2) const;
 
-  void writeRaw(const std::string &out_fname) const;
-  int write(const std::string &out_fname) const;
-  static std::optional<Filter> loadRaw(const std::string &in_fname);
-  static std::optional<Filter> load(const std::string &in_fname);
+  int writeRaw(const std::string &out_fname) const;
+  int writeGz(const std::string &out_fname) const;
+  int write(const std::string &out_fname, Compression cmpr) const;
+  static std::optional<Filter> loadRaw(const std::string& in_fname);
+  static std::optional<Filter> loadGz(const std::string& in_fname);
+  static std::optional<Filter> load(const std::string& in_fname);
+  static Bloom::Compression inferCompression(const std::string& in_fname);
   size_t size() const { return bytevec.size(); }
   uint64_t hashN() const { return hash_n; }
   uint64_t kmerSize() const { return kmer_size; }
@@ -42,6 +50,7 @@ public:
 
   size_t setBitsCount() const;
   double falsePostiveRate() const;
+
 
 private:
   uint64_t filter_size; // filter size in bytes

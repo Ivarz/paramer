@@ -113,14 +113,12 @@ namespace Gz {
 			int buffer_size = std::min(static_cast<uint64_t>(max_bytes), bytes - loaded_bytes);
 			int gzread_output = gzread(file_handler, reinterpret_cast<char*>(bytevec.data()+offset), buffer_size);
 			if (gzread_output < 0) {
-				std::cerr << __FUNCTION__ << " Error " << gzerror(file_handler, &gzread_output)  << "\n";
 				return  {};
 			} else {
 				loaded_bytes += buffer_size;
 				offset = loaded_bytes;
 			}
 		}
-		std::cout << __FUNCTION__ << " loaded_bytes " << loaded_bytes << '\n';
 		return bytevec;
 
 	}

@@ -98,10 +98,10 @@ TEST_CASE("Test Bloom::Filter::searchFastqPair") {
 	}
 }
 
-TEST_CASE("Test Bloom::Filter::write and Bloom::Filter::load") {
+TEST_CASE("Test Bloom::Filter::writeGz and Bloom::Filter::loadGz") {
 	Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
-	t0_bloom.write("test_data/t0.blm");
-	std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
+	t0_bloom.writeGz("test_data/t0.blm");
+	std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::loadGz("test_data/t0.blm");
 	std::remove("test_data/t0.blm");
 	CHECK(t0_bloom_load->size() == 1000);
 	CHECK(t0_bloom_load->setBitsCount() == 0);
@@ -114,8 +114,8 @@ TEST_CASE("Test Bloom::Filter::write and Bloom::Filter::load") {
 	t1_bloom.at(8) = 2;
 	t1_bloom.at(10) = 4;
 	t1_bloom.at(999) = 255;
-	t1_bloom.write("test_data/t1.blm");
-	std::optional<Bloom::Filter> t1_bloom_load = Bloom::Filter::load("test_data/t1.blm");
+	t1_bloom.writeGz("test_data/t1.blm");
+	std::optional<Bloom::Filter> t1_bloom_load = Bloom::Filter::loadGz("test_data/t1.blm");
 	std::remove("test_data/t1.blm");
 	CHECK(t1_bloom_load->at(0) == 1);
 	CHECK(t1_bloom_load->at(3) == 3);
@@ -148,6 +148,61 @@ TEST_CASE("Test Bloom::Filter::writeRaw and Bloom::Filter::loadRaw") {
 	CHECK(t1_bloom_load->at(8) == 2);
 	CHECK(t1_bloom_load->at(10) == 4);
 	CHECK(t1_bloom_load->at(999) == 255);
+}
+
+TEST_CASE("Test Bloom::Filter::write and Bloom::Filter::load") {
+	{
+		Bloom::Compression cmpr = Bloom::Compression::RAW;
+		Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
+		t0_bloom.write("test_data/t0.blm", cmpr);
+		std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
+		std::remove("test_data/t0.blm");
+		CHECK(t0_bloom_load->size() == 1000);
+		CHECK(t0_bloom_load->setBitsCount() == 0);
+		CHECK(t0_bloom_load->kmerSize() == 31);
+		CHECK(t0_bloom_load->hashN() == 1);
+
+		Bloom::Filter t1_bloom = Bloom::Filter(1000, 31, 31, 1);
+		t1_bloom.at(0) = 1;
+		t1_bloom.at(3) = 3;
+		t1_bloom.at(8) = 2;
+		t1_bloom.at(10) = 4;
+		t1_bloom.at(999) = 255;
+		t1_bloom.write("test_data/t1.blm", cmpr);
+		std::optional<Bloom::Filter> t1_bloom_load = Bloom::Filter::load("test_data/t1.blm");
+		std::remove("test_data/t1.blm");
+		CHECK(t1_bloom_load->at(0) == 1);
+		CHECK(t1_bloom_load->at(3) == 3);
+		CHECK(t1_bloom_load->at(8) == 2);
+		CHECK(t1_bloom_load->at(10) == 4);
+		CHECK(t1_bloom_load->at(999) == 255);
+	}
+	{
+		Bloom::Compression cmpr = Bloom::Compression::GZ;
+		Bloom::Filter t0_bloom = Bloom::Filter(1000, 31, 31, 1);
+		t0_bloom.write("test_data/t0.blm", cmpr);
+		std::optional<Bloom::Filter> t0_bloom_load = Bloom::Filter::load("test_data/t0.blm");
+		std::remove("test_data/t0.blm");
+		CHECK(t0_bloom_load->size() == 1000);
+		CHECK(t0_bloom_load->setBitsCount() == 0);
+		CHECK(t0_bloom_load->kmerSize() == 31);
+		CHECK(t0_bloom_load->hashN() == 1);
+
+		Bloom::Filter t1_bloom = Bloom::Filter(1000, 31, 31, 1);
+		t1_bloom.at(0) = 1;
+		t1_bloom.at(3) = 3;
+		t1_bloom.at(8) = 2;
+		t1_bloom.at(10) = 4;
+		t1_bloom.at(999) = 255;
+		t1_bloom.write("test_data/t1.blm", cmpr);
+		std::optional<Bloom::Filter> t1_bloom_load = Bloom::Filter::load("test_data/t1.blm");
+		std::remove("test_data/t1.blm");
+		CHECK(t1_bloom_load->at(0) == 1);
+		CHECK(t1_bloom_load->at(3) == 3);
+		CHECK(t1_bloom_load->at(8) == 2);
+		CHECK(t1_bloom_load->at(10) == 4);
+		CHECK(t1_bloom_load->at(999) == 255);
+	}
 }
 
 TEST_CASE ("Test Bloom::Filter::extendSeq") {

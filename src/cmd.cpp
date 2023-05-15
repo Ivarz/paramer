@@ -73,16 +73,17 @@ namespace BloomBuild {
 	  options.add_options()(
 		  "r,reference",
 		  "Reference in fasta or fastq format. Can be supplied multiple times",
-		  cxxopts::value<std::vector<std::string>>())(
-		  "k,klen", "Kmer length to use for filter", cxxopts::value<uint64_t>()->default_value("31"))(
-		  "w,wlen", "Window length to use for filter", cxxopts::value<uint64_t>()->default_value("35"))(
-		  "s,size", "filter size in bytes, kilobytes, megabytes or gigabytes (suffixes K,M,G)",
-		  cxxopts::value<std::string>()->default_value("100000000"))(
-		  "l,seqlen", "Minimum sequence length to use for inserting in filter",
-		  cxxopts::value<uint64_t>()->default_value("100"))(
-		  "n,nhash", "Number of hashes to use", cxxopts::value<uint64_t>())(
-		  "o,output", "output file", cxxopts::value<std::string>())("h,help",
-																	"Help message");
+		  cxxopts::value<std::vector<std::string>>())
+		  ("k,klen", "Kmer length to use for filter", cxxopts::value<uint64_t>()->default_value("31"))
+		  ("w,wlen", "Window length to use for filter", cxxopts::value<uint64_t>()->default_value("35"))
+		  ("s,size", "filter size in bytes, kilobytes, megabytes or gigabytes (suffixes K,M,G)",
+			  cxxopts::value<std::string>()->default_value("10G"))
+		  ("l,seqlen", "Minimum sequence length to use for inserting in filter",
+			  cxxopts::value<uint64_t>()->default_value("100"))
+		  ("n,nhash", "Number of hashes to use", cxxopts::value<uint64_t>())
+		  ("o,output", "output file", cxxopts::value<std::string>())
+		  ("raw", "use uncompressed output format", cxxopts::value<bool>()->default_value("false"))
+		  ("h,help", "Help message");
 
 	  if (argc < 3) {
 		print_help(options);
@@ -117,6 +118,8 @@ namespace BloomBuild {
 	  uint64_t seqlen = result["seqlen"].as<uint64_t>();
 	  uint64_t nhash = result["nhash"].as<uint64_t>();
 	  std::string output = result["output"].as<std::string>();
+	  bool writeRaw = result["raw"].as<bool>();
+	  Bloom::Compression out_compression = writeRaw ? Bloom::Compression::RAW : Bloom::Compression::GZ;
 	  Bloom::Filter blmf = Bloom::Filter(size, klen, wlen, nhash);
 	  for (const std::string &fname : seq_fnames) {
 		std::cerr << fname << '\n';
@@ -138,7 +141,7 @@ namespace BloomBuild {
 		  std::cerr << "Unrecognized file format\n";
 		}
 	  }
-	  blmf.write(output_fname);
+	  blmf.write(output_fname, out_compression);
 
 	  return 0;
 	}
