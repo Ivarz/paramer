@@ -213,8 +213,21 @@ namespace Fasta {
 	void loadSoftmaskAndPrint(const std::string& fasta_fname
 			, const std::vector<std::string>& kraken2_fnames
 			, const std::vector<std::string>& reference_fnames
+			, const std::string& output_fname
 			, size_t kmer_size
 			) {
+
+		std::optional<Gz::Writer> gzw = {};
+		std::optional<std::ofstream> fh = {};
+
+
+		if (output_fname.size() >= 3
+				&& output_fname.substr(output_fname.size()-3, 3) == ".gz") {
+			std::cerr << "Writing as GZ\n";
+			gzw.emplace(output_fname);
+		} else if (output_fname != "-") {
+			fh.emplace(output_fname);
+		}
 
 		Gz::Reader gzrfa = Gz::Reader(fasta_fname);
 		std::vector<Gz::Reader> k2_readers;
@@ -243,13 +256,11 @@ namespace Fasta {
 		}
 
 		while (fa_rec) {
-			std::cerr << "Processing " << fa_rec->seq_id << '\n';
+			//std::cerr << "Processing " << fa_rec->seq_id << '\n';
 			for (const auto &k2_rec : k2_recs) {
 				if (k2_rec) {
 					if (idsMatch(fa_rec->seq_id, k2_rec->seq_id)) {
-						std::cerr << "Processing " << fa_rec->seq_id << '\n';
 						fa_rec->softmaskWithKraken2(*k2_rec);
-						// results.push_back(*fa_rec);
 				  } else {
 					std::cerr << "Ids do not match\n";
 					std::cerr << fa_rec->seq_id << "\t"
@@ -261,7 +272,13 @@ namespace Fasta {
 				Dna::softmaskNotInKmerHashes(fa_rec->seq, fa_kmers, kmer_size);
 			}
 
-			fa_rec->print();
+			if (gzw) {
+				writeRecord(*gzw, *fa_rec);
+			} else if (fh) {
+				writeRecordRaw(*fh, *fa_rec);
+			} else {
+				fa_rec->print();
+			}
 			fa_rec = Fasta::nextRecord(gzrfa);
 			k2_recs.clear();
 
@@ -269,5 +286,18 @@ namespace Fasta {
 			  k2_recs.push_back(Kraken2::nextRecord(gzkr2));
 			}
 		}
+		if (fh) {
+			fh->close();
+		}
+	}
+	int writeRecord(Gz::Writer &gzw, const Rec &rec) {
+		gzw.writeLine(">"+rec.seq_id);
+		gzw.writeLine(rec.seq);
+		return 0;
+	}
+	int writeRecordRaw(std::ofstream &fh, const Rec &rec) {
+		fh << ">" << rec.seq_id << '\n';
+		fh << rec.seq << '\n';
+		return 0;
 	}
 }

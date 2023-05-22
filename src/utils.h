@@ -47,8 +47,9 @@ namespace Gz {
 	class Writer {
 		public:
 			explicit Writer(const std::string& fn);
-			Writer(Reader&& other) noexcept;
-			Writer(const Reader&) noexcept;
+			Writer(Writer&& other) noexcept;
+			Writer(const Writer&) noexcept;
+			//Writer& operator=(Writer&&) noexcept;
 			int write(void* buff, size_t bytes);
 			~Writer();
 			int bufferedWrite(const std::vector<uint8_t>& data);

@@ -4,6 +4,7 @@
 #include "utils.h"
 #include "seq.h"
 #include "kraken2.h"
+#include <fstream>
 #include <ntHashIterator.hpp>
 
 
@@ -58,7 +59,11 @@ namespace Fasta {
 	void loadSoftmaskAndPrint(const std::string& fasta_fname
 			, const std::vector<std::string>& kraken2_fnames
 			, const std::vector<std::string>& reference_fnames
+			, const std::string& output_fname
 			, size_t kmer_size = 31);
+
+	int writeRecord(Gz::Writer& gzw, const Rec& rec);
+	int writeRecordRaw(std::ofstream& fw, const Rec& rec);
 }
 
 #endif

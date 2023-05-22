@@ -134,6 +134,11 @@ namespace Gz {
 			//file_handler = nullptr;
 		}
 	}
+	//Writer& Writer::operator=(Writer&& other) noexcept {
+		//this->file_name = std::move(other.file_name);
+		//this->file_handler = std::move(other.file_handler);
+		//return *this;
+	//}
 	Writer::~Writer() {
 		if (file_handler) {
 			gzclose(file_handler);

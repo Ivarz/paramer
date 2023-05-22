@@ -40,22 +40,46 @@ TEST_CASE("Test Utils::dataSizeToBytes") {
 }
 
 TEST_CASE("Test Gz::Writer::writeLine") {
-	std::string fname = "test_data/gz_writer_test.txt.gz";
-	std::string t1 = "test string1";
-	std::string t2 = "test string2";
-	std::string t3 = "test string3";
 	{
-		Gz::Writer gzw = Gz::Writer(fname);
-		gzw.writeLine(t1);
-		gzw.writeLine(t2);
-		gzw.writeLine(t3);
+		std::string fname = "test_data/gz_writer_test.txt.gz";
+		std::string t1 = "test string1";
+		std::string t2 = "test string2";
+		std::string t3 = "test string3";
+		{
+			Gz::Writer gzw = Gz::Writer(fname);
+			gzw.writeLine(t1);
+			gzw.writeLine(t2);
+			gzw.writeLine(t3);
+		}
+		Gz::Reader gzr = Gz::Reader(fname);
+		std::string l1 = gzr.nextLine();
+		std::string l2 = gzr.nextLine();
+		std::string l3 = gzr.nextLine();
+		CHECK(t1 == l1);
+		CHECK(t2 == l2);
+		CHECK(t3 == l3);
+		std::remove(fname.c_str());
 	}
-	Gz::Reader gzr = Gz::Reader(fname);
-	std::string l1 = gzr.nextLine();
-	std::string l2 = gzr.nextLine();
-	std::string l3 = gzr.nextLine();
-	CHECK(t1 == l1);
-	CHECK(t2 == l2);
-	CHECK(t3 == l3);
-	std::remove(fname.c_str());
+
+	{
+		std::string fname = "test_data/gz_writer_test.txt.gz";
+		std::string t1 = "test string1";
+		std::string t2 = "test string2";
+		std::string t3 = "test string3";
+		{
+			std::optional<Gz::Writer> gzw = {};
+			gzw.emplace(fname);
+			gzw->writeLine(t1);
+			gzw->writeLine(t2);
+			gzw->writeLine(t3);
+		}
+		Gz::Reader gzr = Gz::Reader(fname);
+		std::string l1 = gzr.nextLine();
+		std::string l2 = gzr.nextLine();
+		std::string l3 = gzr.nextLine();
+		CHECK(t1 == l1);
+		CHECK(t2 == l2);
+		CHECK(t3 == l3);
+		std::remove(fname.c_str());
+	}
 }

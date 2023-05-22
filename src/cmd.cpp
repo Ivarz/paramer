@@ -28,8 +28,10 @@ namespace Mask {
 		  "multiple times.",
 		  cxxopts::value<std::vector<std::string>>())(
 		  "klen", "Kmer length to use for filter",
-		  cxxopts::value<size_t>()->default_value("31"))("h,help",
-														   "Help message");
+		  cxxopts::value<size_t>()->default_value("31"))
+		   ("o,output", "output file to write masked fasta file",
+			cxxopts::value<std::string>()->default_value("-"))
+			  ("h,help", "Help message");
 
 	  if (argc < 3) {
 		print_help(options);
@@ -44,6 +46,7 @@ namespace Mask {
 	  }
 
 	  std::string fasta_fname = result["fasta"].as<std::string>();
+	  std::string output_fname = result["output"].as<std::string>();
 	  std::vector<std::string> kraken2_fnames =
 		  result["kraken2"].as<std::vector<std::string>>();
 	  std::vector<std::string> reference_fnames{};
@@ -60,7 +63,7 @@ namespace Mask {
 		return 1;
 	  }
 
-	  Fasta::loadSoftmaskAndPrint(fasta_fname, kraken2_fnames, reference_fnames, kmer_size);
+	  Fasta::loadSoftmaskAndPrint(fasta_fname, kraken2_fnames, reference_fnames, output_fname, kmer_size);
 	  return 0;
 	}
 
@@ -80,7 +83,7 @@ namespace BloomBuild {
 			  cxxopts::value<std::string>()->default_value("10G"))
 		  ("l,seqlen", "Minimum sequence length to use for inserting in filter",
 			  cxxopts::value<uint64_t>()->default_value("100"))
-		  ("n,nhash", "Number of hashes to use", cxxopts::value<uint64_t>())
+		  ("n,nhash", "Number of hashes to use", cxxopts::value<uint64_t>()->default_value("3"))
 		  ("o,output", "output file", cxxopts::value<std::string>())
 		  ("raw", "use uncompressed output format", cxxopts::value<bool>()->default_value("false"))
 		  ("h,help", "Help message");
@@ -111,6 +114,7 @@ namespace BloomBuild {
 		print_help(options);
 		return 1;
 	  }
+
 	  uint64_t klen = result["klen"].as<uint64_t>();
 	  uint64_t wlen = result["wlen"].as<uint64_t>();
 	  std::string size_str = result["size"].as<std::string>();
@@ -121,17 +125,16 @@ namespace BloomBuild {
 	  bool writeRaw = result["raw"].as<bool>();
 	  Bloom::Compression out_compression = writeRaw ? Bloom::Compression::RAW : Bloom::Compression::GZ;
 	  Bloom::Filter blmf = Bloom::Filter(size, klen, wlen, nhash);
+
 	  for (const std::string &fname : seq_fnames) {
 		std::cerr << fname << '\n';
 		std::optional<FileFormat> fformat = Fastx::inferFileFormat(fname);
 		if (fformat) {
 		  switch (*fformat) {
 		  case FileFormat::Fasta:
-			std::cerr << fname << " inferred as fasta\n";
 			blmf.addFasta(fname, seqlen);
 			break;
 		  case FileFormat::Fastq:
-			std::cerr << fname << " inferred as fastq\n";
 			blmf.addFastq(fname, seqlen);
 			break;
 		  default:
@@ -141,6 +144,7 @@ namespace BloomBuild {
 		  std::cerr << "Unrecognized file format\n";
 		}
 	  }
+
 	  blmf.write(output_fname, out_compression);
 
 	  return 0;
@@ -157,8 +161,9 @@ namespace BloomSearch {
 		  cxxopts::value<std::string>()->default_value(""))(
 		  "i,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())(
 		  "I,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())(
-		  "o,out-mates1", "Otput file of reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())(
-		  "O,out-mates2", "Otput file of reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "o,out-mates1", "Output file of reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "O,out-mates2", "Output file of reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())(
+		  "no-load", "Do not load filter in memory", cxxopts::value<bool>()->default_value("false"))(
 		  "c,mincount", "minimum number of matching kmers for hit",
 		  cxxopts::value<size_t>()->default_value("50"))(
 		  "u,unpaired", "Single end reads",
@@ -170,9 +175,16 @@ namespace BloomSearch {
 	  }
 	  auto result = options.parse(argc - 1, argv + 1);
 	  std::string seq = result["sequence"].as<std::string>();
+	  bool no_load = result["no-load"].as<bool>();
 	  std::string bloom_filter_name = result["bloom"].as<std::string>();
 
-	  std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
+	  std::optional<Bloom::Filter> bloom_filter = {};
+	  if (no_load) {
+		  bloom_filter = Bloom::Filter::loadPointer(bloom_filter_name);
+	  } else {
+		  bloom_filter = Bloom::Filter::load(bloom_filter_name);
+	  }
+	  
 	  size_t hits = 0;
 	  if (seq.size() > 0) {
 		hits = bloom_filter->searchSeq(seq);
@@ -205,6 +217,7 @@ namespace BloomSearch {
 		}
 		curr_rec_pair = Fastq::nextRecordPair(mates1_reader, mates2_reader);
 	  }
+	  bloom_filter->closePointer();
 
 	  return 0;
 	}
@@ -220,6 +233,7 @@ namespace Extend {
 		  ("1,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())
 		  ("2,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())
 		  ("u,unpaired", "Unpaired reads in (fastq(.gz))", cxxopts::value<std::string>())
+		  ("no-load", "Do not load filter in memory", cxxopts::value<bool>()->default_value("false"))
 		  ("h,help", "Help message");
 
 	  if (argc < 3) {
@@ -229,8 +243,14 @@ namespace Extend {
 	  auto result = options.parse(argc - 1, argv + 1);
 	  std::string seq = result["sequence"].as<std::string>();
 	  std::string bloom_filter_name = result["bloom"].as<std::string>();
+	  bool no_load = result["no-load"].as<bool>();
 
-	  std::optional<Bloom::Filter> bloom_filter = Bloom::Filter::load(bloom_filter_name);
+	  std::optional<Bloom::Filter> bloom_filter = {};
+	  if (no_load) {
+		  bloom_filter = Bloom::Filter::loadPointer(bloom_filter_name);
+	  } else {
+		  bloom_filter = Bloom::Filter::load(bloom_filter_name);
+	  }
 	  if (!bloom_filter) {
 		  std::cerr << "Failed to load bloom filter\n";
 		  return 1;
@@ -274,6 +294,7 @@ namespace Extend {
 		  }
 	  }
 
+	  bloom_filter->closePointer();
 	  return 0;
 	}
 } // namespace Extend

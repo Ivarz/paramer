@@ -25,14 +25,15 @@ namespace Bloom {
 		}
 	}
 
-	size_t Filter::searchMinimizers(const std::string& seq) const {
+	size_t Filter::searchMinimizers(const std::string& seq) {
 		std::vector<uint64_t> minimizers = Dna::getMinimizerHashes(seq, kmer_size, hash_n, window_size);
 		size_t kmer_hits = 0;
 		for (size_t i = 0; i < minimizers.size(); i += hash_n) {
 			size_t hash_hits = 0;
 			for (size_t j = i; j < i+hash_n; j++) {
 				std::pair<size_t, uint8_t> idx_value = index_value(minimizers[j], filter_size);
-				if (bytevec[idx_value.first] & idx_value.second) {
+				//if (bytevec[idx_value.first] & idx_value.second) {
+				if (getByteVecVal(idx_value.first) & idx_value.second) {
 					hash_hits++;
 				}
 				kmer_hits += (hash_hits/hash_n);
@@ -41,14 +42,14 @@ namespace Bloom {
 		return kmer_hits;
 	}
 
-	size_t Filter::searchSeq(const std::string& seq) const {
+	size_t Filter::searchSeq(const std::string& seq) {
 		std::vector<uint64_t> hashes = Dna::getHashes(seq, kmer_size, hash_n);
 		size_t kmer_hits = 0;
 		for (size_t i = 0; i < hashes.size(); i += hash_n) {
 			size_t hash_hits = 0;
 			for (size_t j = i; j < i+hash_n; j++) {
 				std::pair<size_t, uint8_t> idx_value = index_value(hashes[j], filter_size);
-				if (bytevec[idx_value.first] & idx_value.second) {
+				if (getByteVecVal(idx_value.first) & idx_value.second) {
 					hash_hits++;
 				}
 			}
@@ -57,9 +58,34 @@ namespace Bloom {
 		return kmer_hits;
 	}
 
-	size_t Filter::searchFastqPair(const Fastq::Pair& fq_pair) const {
+	uint8_t Filter::seekAt(size_t idx) {
+		uint8_t value = 0;
+		const size_t OFFSET = 34; //header subject to change
+		filter_fptr.seekg(OFFSET+idx, filter_fptr.beg);
+		filter_fptr.read(reinterpret_cast<char*>(&value), sizeof(value));
 
-		size_t (Filter::*searcher)(const std::string&) const;
+		return value;
+	}
+
+	size_t Filter::seekSeq(const std::string& seq) {
+		std::vector<uint64_t> hashes = Dna::getHashes(seq, kmer_size, hash_n);
+		size_t kmer_hits = 0;
+		for (size_t i = 0; i < hashes.size(); i += hash_n) {
+			size_t hash_hits = 0;
+			for (size_t j = i; j < i+hash_n; j++) {
+				std::pair<size_t, uint8_t> idx_value = index_value(hashes[j], filter_size);
+				if (seekAt(idx_value.first) & idx_value.second) {
+					hash_hits++;
+				}
+			}
+			kmer_hits += (hash_hits/hash_n);
+		}
+		return kmer_hits;
+	}
+
+	size_t Filter::searchFastqPair(const Fastq::Pair& fq_pair) {
+
+		size_t (Filter::*searcher)(const std::string&);
 		searcher = 
 			window_size > kmer_size
 			? &Filter::searchMinimizers
@@ -176,6 +202,41 @@ namespace Bloom {
 		return result;
 	}
 
+	std::optional<Filter> Filter::loadPointer(const std::string& in_fname) {
+		uint8_t magic_byte = 0;
+		uint64_t filter_size = 0;
+		uint64_t kmer_size = 0;
+		uint64_t window_size = 0;
+		uint64_t hash_n = 0;
+
+		std::ifstream infh(in_fname, std::ios::out | std::ios::binary);
+		infh.read(reinterpret_cast<char*>(&magic_byte), sizeof(magic_byte));
+		infh.read(reinterpret_cast<char*>(&magic_byte), sizeof(magic_byte));
+		infh.read(reinterpret_cast<char*>(&filter_size), sizeof(uint64_t));
+		infh.read(reinterpret_cast<char*>(&kmer_size), sizeof(uint64_t));
+		infh.read(reinterpret_cast<char*>(&window_size), sizeof(uint64_t));
+		infh.read(reinterpret_cast<char*>(&hash_n), sizeof(uint64_t));
+
+		// Read the remaining data into a vector<uint8_t>
+		Filter result = Filter(0, 0, 0, 0);
+		result.filter_size = filter_size;
+		result.kmer_size = kmer_size;
+		result.window_size = window_size;
+		result.hash_n = hash_n;
+		result.bytevec = {};
+		result.filter_fptr.open(in_fname, std::ios::out | std::ios::binary);
+
+		// Close the file
+		infh.close();
+		return result;
+	}
+
+	void Filter::closePointer(){
+		if (filter_fptr.is_open()) {
+			filter_fptr.close();
+		}
+	}
+
 	std::optional<Filter> Filter::loadGz(const std::string& in_fname) {
 
 		uint64_t filter_size = 0;
@@ -204,6 +265,8 @@ namespace Bloom {
 			return {};
 		}
 	}
+
+  
 	std::optional<Filter> Filter::load(const std::string& in_fname) {
 		Bloom::Compression cmpr = Filter::inferCompression(in_fname);
 		if (cmpr == Bloom::Compression::GZ) {
@@ -231,7 +294,7 @@ namespace Bloom {
                  std::vector<std::string>& candidate_seqs,
                  const std::function<std::string(std::string)>& extract_kmer,
                  const std::function<std::string(std::string, char)>& next_seq
-				 ) const {
+				 ) {
 		std::string current_kmer = extract_kmer(current_seq);
 		Dna::addKmerHashes(current_kmer, kmer_size, 1, seen_kmer_hashes);
 		bool finished_path = true;
@@ -253,7 +316,7 @@ namespace Bloom {
 	void Filter::dfs5prime(const std::string& current_seq,
 			robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 			std::vector<std::string>& candidate_seqs
-			) const {
+			) {
 
 		auto extract_kmer = [this](std::string s){ return s.substr(s.size()-kmer_size, kmer_size); };
 		auto next_seq = [](std::string str, char c) { return str + c; };
@@ -267,7 +330,7 @@ namespace Bloom {
 	void Filter::dfs3prime(const std::string& current_seq,
 			robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 			std::vector<std::string>& candidate_seqs
-			) const {
+			) {
 
 		auto extract_kmer = [this](std::string s){ return s.substr(0, kmer_size); };
 		auto next_seq = [](std::string str, char c) { return c + str; };
@@ -278,7 +341,7 @@ namespace Bloom {
 				next_seq
 				);
 	}
-	std::vector<std::string> Filter::extendSeq(const std::string &seq) const {
+	std::vector<std::string> Filter::extendSeq(const std::string &seq) {
 		robin_hood::unordered_set<uint64_t> seen_kmers_5p;
 		size_t hash_n_for_dfs = 1;
 		Dna::addKmerHashes(seq, kmer_size, hash_n_for_dfs, seen_kmers_5p);
@@ -300,7 +363,7 @@ namespace Bloom {
 		return extended_seqs;
 	}
 
-	std::vector<std::string> Filter::extendSeqPair(const std::string &seq1,const std::string &seq2 ) const {
+	std::vector<std::string> Filter::extendSeqPair(const std::string &seq1,const std::string &seq2 ) {
 		std::vector<std::string> result{};
 		std::vector<std::string> candidates_mate1 = extendSeq(seq1);
 		std::vector<std::string> candidates_mate2 = extendSeq(seq2);
