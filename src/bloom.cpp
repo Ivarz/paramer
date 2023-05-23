@@ -46,7 +46,7 @@ namespace Bloom {
 	}
 
 	size_t Filter::searchSeq(const std::string& seq) {
-		if (seq.size() < kmer_size || seq.find('n') != std::string::npos || seq.find('n') != std::string::npos) {
+		if (seq.size() < kmer_size || seq.find('N') != std::string::npos || seq.find('n') != std::string::npos) {
 			return 0;
 		}
 		std::vector<uint64_t> hashes = Dna::getHashes(seq, kmer_size, hash_n);
