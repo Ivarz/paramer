@@ -51,6 +51,7 @@ public:
   size_t size() const { return bytevec.size(); }
   uint64_t hashN() const { return hash_n; }
   uint64_t kmerSize() const { return kmer_size; }
+  uint64_t windowSize() const { return window_size; }
   uint8_t at(size_t idx) { return bytevec.at(idx); };
   uint8_t& atRef(size_t idx) { return bytevec.at(idx); };
   uint8_t seekAt(size_t idx);

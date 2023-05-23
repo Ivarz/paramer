@@ -191,21 +191,15 @@ namespace Dna {
 			size_t window_size) {
 
 		std::vector<uint64_t> min_hash_per_window{};
-		if (kmer_size > seq.size()) {
+		if (window_size > seq.size() || kmer_size > seq.size()) {
 			return min_hash_per_window;
 		}
 		std::vector<uint64_t> hashes = getHashes(seq, kmer_size, hash_n);
 
-		std::vector<uint64_t> current_mins(hash_n, std::numeric_limits<uint64_t>::max());
-		std::vector<int> current_min_counts(hash_n, 0);
-
-		//for (auto c: hashes) {
-			//std::cerr << c << '\n';
-		//}
-		//std::cerr << '\n' << '\n';
 		size_t kmers_in_window = window_size - kmer_size + 1;
-		int kmers_in_seq = seq.size() - kmer_size + 1;
-		for (size_t window_idx = 0; window_idx < kmers_in_seq - kmers_in_window + 1; window_idx++) {
+		size_t windows_in_seq = seq.size() - window_size + 1;
+
+		for (size_t window_idx = 0; window_idx < windows_in_seq; window_idx++) {
 			for (size_t offset = 0; offset < hash_n; offset++) {
 				uint64_t min_value = hashes[window_idx*hash_n + offset];
 				for (size_t i = window_idx; i < window_idx+kmers_in_window; i++){

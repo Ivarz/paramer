@@ -26,6 +26,9 @@ namespace Bloom {
 	}
 
 	size_t Filter::searchMinimizers(const std::string& seq) {
+		if (seq.size() < window_size || seq.find('N') != std::string::npos || seq.find('n') != std::string::npos) {
+			return 0;
+		}
 		std::vector<uint64_t> minimizers = Dna::getMinimizerHashes(seq, kmer_size, hash_n, window_size);
 		size_t kmer_hits = 0;
 		for (size_t i = 0; i < minimizers.size(); i += hash_n) {
@@ -43,6 +46,9 @@ namespace Bloom {
 	}
 
 	size_t Filter::searchSeq(const std::string& seq) {
+		if (seq.size() < kmer_size || seq.find('n') != std::string::npos || seq.find('n') != std::string::npos) {
+			return 0;
+		}
 		std::vector<uint64_t> hashes = Dna::getHashes(seq, kmer_size, hash_n);
 		size_t kmer_hits = 0;
 		for (size_t i = 0; i < hashes.size(); i += hash_n) {

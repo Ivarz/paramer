@@ -187,7 +187,11 @@ namespace BloomSearch {
 	  
 	  size_t hits = 0;
 	  if (seq.size() > 0) {
-		hits = bloom_filter->searchSeq(seq);
+		if (bloom_filter->windowSize() > bloom_filter->kmerSize()) {
+			hits = bloom_filter->searchMinimizers(seq);
+		} else {
+			hits = bloom_filter->searchSeq(seq);
+		}
 		std::cout << "Kmers matching: " << hits << '\n';
 		return 0;
 	  }
