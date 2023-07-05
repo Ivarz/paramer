@@ -89,6 +89,22 @@ private:
 		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 		  std::vector<std::string>& candidate_seqs
 		  );
+  void bfs(std::string current_seq,
+		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
+		  std::vector<std::string>& candidate_seqs,
+		  const std::function<std::string(std::string)>& extract_kmer,
+		  const std::function<std::string(std::string, char)>& next_seq,
+		  const std::function<std::string(std::string, std::string)>& add_parent_to_path,
+		  const std::function<std::string(std::string, uint64_t)>& clip
+		  );
+  void bfs5prime(const std::string& current_seq,
+		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
+		  std::vector<std::string>& candidate_seqs
+		  );
+  void bfs3prime(const std::string& current_seq,
+		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
+		  std::vector<std::string>& candidate_seqs
+		  );
 
 };
 } // namespace Bloom
