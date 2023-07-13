@@ -275,6 +275,7 @@ namespace Extend {
 			  Fastq::nextRecordPair(mates1_reader, mates2_reader);
 
 		  while (curr_rec_pair) {
+			  std::cerr << curr_rec_pair->first.seq_id << '\n';
 			std::vector<std::string> candidate_seqs = bloom_filter->extendSeqPair(curr_rec_pair->first.seq, curr_rec_pair->second.seq);
 			for (const auto& seq: candidate_seqs) {
 				std::cout << seq << '\n';

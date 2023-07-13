@@ -318,6 +318,7 @@ namespace Bloom {
 
 		while (q.size() > 0) {
 			std::string curr_seq = q.front();
+			//std::cerr << curr_seq << '\t' << pathlen[curr_seq] << "\tseen kmers: " << seen_kmer_hashes.size() << '\n';
 			q.pop();
 			bool is_leaf = true;
 			for (char c : std::string("ATGC")) {
@@ -444,9 +445,10 @@ namespace Bloom {
 
 		//dfs5prime(seq, seen_kmers_5p, candidate_seqs_5p);
 		//dfs3prime(seq, seen_kmers_3p, candidate_seqs_3p);
+		//std::cerr << "bfs5prime\n";
 		bfs5prime(seq, seen_kmers_5p, candidate_seqs_5p);
 		bfs3prime(seq, seen_kmers_3p, candidate_seqs_3p);
-		std::cerr << "candidate sizes: " << candidate_seqs_5p.size() << '\t' << candidate_seqs_3p.size() << '\n';
+		//std::cerr << "candidate sizes: " << candidate_seqs_5p.size() << '\t' << candidate_seqs_3p.size() << '\n';
 		for (const auto& seq5: candidate_seqs_5p) {
 			for (const auto& seq3: candidate_seqs_3p) {
 				//std::cerr << "seq3 " << seq3 << '\n';
@@ -458,7 +460,7 @@ namespace Bloom {
 			}
 		}
 		for (const auto& s: extended_seqs) {
-			std::cerr << "ext seq " << s << '\n';
+			//std::cerr << "ext seq " << s << '\n';
 		}
 
 		return extended_seqs;
