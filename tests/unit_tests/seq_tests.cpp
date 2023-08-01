@@ -284,3 +284,9 @@ TEST_CASE("Testing minimizerHashes") {
 		}
 	}
 }
+
+TEST_CASE("Testing Dna::shannon") {
+	CHECK(std::abs(Dna::shannon("") - 0.0) < 0.000001 );
+	CHECK(std::abs(Dna::shannon("ATGATGATGATGATGATGATGATG") - 1.0930808359255935) < 0.000001 );
+	CHECK(std::abs(Dna::shannon("GTCTGTCTGGTAGCTTACGATTTCCCGTGGT") - 3.0599691653497123) < 0.000001 );
+}

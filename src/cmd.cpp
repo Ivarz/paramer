@@ -237,6 +237,8 @@ namespace Extend {
 		  ("1,mates1", "Reads mates 1 (fastq(.gz))", cxxopts::value<std::string>())
 		  ("2,mates2", "Reads mates 2 (fastq(.gz))", cxxopts::value<std::string>())
 		  ("u,unpaired", "Unpaired reads in (fastq(.gz))", cxxopts::value<std::string>())
+		  ("max-candidates", "Maximum number of candidate sequences to output", cxxopts::value<int>()->default_value("10"))
+		  ("max-path-length", "Maximum allowed extended sequence length", cxxopts::value<int>()->default_value("1000"))
 		  ("no-load", "Do not load filter in memory", cxxopts::value<bool>()->default_value("false"))
 		  ("h,help", "Help message");
 
@@ -248,6 +250,8 @@ namespace Extend {
 	  std::string seq = result["sequence"].as<std::string>();
 	  std::string bloom_filter_name = result["bloom"].as<std::string>();
 	  bool no_load = result["no-load"].as<bool>();
+	  int max_candidates = result["max-candidates"].as<int>();
+	  int max_path_length = result["max-path-length"].as<int>();
 
 	  std::optional<Bloom::Filter> bloom_filter = {};
 	  if (no_load) {
@@ -260,7 +264,7 @@ namespace Extend {
 		  return 1;
 	  } 
 	  if (result.count("sequence")) {
-		  std::vector<std::string> candidate_seqs = bloom_filter->extendSeq(seq);
+		  std::vector<std::string> candidate_seqs = bloom_filter->extendSeq(seq, max_candidates, max_path_length);
 		  for (const auto& seq: candidate_seqs) {
 			  std::cout << seq << '\n';
 		  }
@@ -276,7 +280,7 @@ namespace Extend {
 
 		  while (curr_rec_pair) {
 			  std::cerr << curr_rec_pair->first.seq_id << '\n';
-			std::vector<std::string> candidate_seqs = bloom_filter->extendSeqPair(curr_rec_pair->first.seq, curr_rec_pair->second.seq);
+			std::vector<std::string> candidate_seqs = bloom_filter->extendSeqPair(curr_rec_pair->first.seq, curr_rec_pair->second.seq, max_candidates, max_path_length);
 			for (const auto& seq: candidate_seqs) {
 				std::cout << seq << '\n';
 			}
@@ -291,7 +295,7 @@ namespace Extend {
 			  Fastq::nextRecord(unpaired_reader);
 
 		  while (curr_rec) {
-			std::vector<std::string> candidate_seqs = bloom_filter->extendSeq(curr_rec->seq);
+			std::vector<std::string> candidate_seqs = bloom_filter->extendSeq(curr_rec->seq, max_candidates, max_path_length);
 			for (const auto& seq: candidate_seqs) {
 				std::cout << seq << '\n';
 			}
