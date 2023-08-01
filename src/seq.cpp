@@ -4,6 +4,8 @@
 #include "ntHashIterator.hpp"
 #include <limits>
 #include <queue>
+#include <map>
+#include <math.h>
 
 namespace Dna {
 	std::string revcom(const std::string& seq) {
@@ -234,5 +236,23 @@ namespace Dna {
 				}
 			 }
 		}
+	}
+	double shannon(const std::string& seq) {
+		const size_t kmer_size = 3;
+		if (seq.size() < kmer_size) {
+			return 0.0;
+		}
+		std::map<std::string, int> counts;
+		for (size_t i = 0; i < seq.size() - kmer_size; i++) {
+			std::string kmer = seq.substr(i, kmer_size);
+			counts[kmer]++;
+		}
+		size_t total_kmer_n = seq.size() - kmer_size + 1;
+		double shannon = 0.0;
+		for (const auto& pair : counts) {
+			double p = static_cast<double>(pair.second) / total_kmer_n;
+			shannon += p*std::log(p);
+		}
+		return -shannon;
 	}
 }

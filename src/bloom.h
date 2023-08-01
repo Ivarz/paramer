@@ -34,8 +34,8 @@ public:
   size_t searchMinimizers(const std::string& seq);
   size_t searchFastqPair(const Fastq::Pair& fq_pair);
 
-  std::vector<std::string> extendSeq(const std::string& seq);
-  std::vector<std::string> extendSeqPair(const std::string& seq1, const std::string& seq2);
+  std::vector<std::string> extendSeq(const std::string& seq, int max_candidates, int max_path_length);
+  std::vector<std::string> extendSeqPair(const std::string& seq1, const std::string& seq2, int max_candidates, int max_path_length);
 
   int writeRaw(const std::string &out_fname) const;
   int writeGz(const std::string &out_fname) const;
@@ -89,21 +89,24 @@ private:
 		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
 		  std::vector<std::string>& candidate_seqs
 		  );
-  void bfs(std::string current_seq,
+  std::vector<std::string> bfs(std::string src,
 		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
-		  std::vector<std::string>& candidate_seqs,
 		  const std::function<std::string(std::string)>& extract_kmer,
 		  const std::function<std::string(std::string, char)>& next_seq,
 		  const std::function<std::string(std::string, std::string)>& add_parent_to_path,
-		  const std::function<std::string(std::string, uint64_t)>& clip
+		  const std::function<std::string(std::string, uint64_t)>& clip,
+		  int max_candidate_limit,
+		  int depth_limit
 		  );
-  void bfs5prime(const std::string& current_seq,
+  std::vector<std::string> bfs5prime(const std::string& src,
 		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
-		  std::vector<std::string>& candidate_seqs
+		  int max_candidate_limit,
+		  int depth_limit
 		  );
-  void bfs3prime(const std::string& current_seq,
+  std::vector<std::string> bfs3prime(const std::string& src,
 		  robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
-		  std::vector<std::string>& candidate_seqs
+		  int max_candidate_limit,
+		  int depth_limit
 		  );
 
 };

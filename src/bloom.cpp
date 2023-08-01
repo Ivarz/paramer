@@ -7,6 +7,8 @@
 #include <functional>
 #include <queue>
 #include <map>
+#include <queue>
+
 namespace Bloom {
 	std::pair<size_t, uint8_t> index_value(uint64_t hash_value, size_t filter_size) {
 		uint64_t bit_idx = hash_value % (filter_size*BITS_IN_BYTE);
@@ -299,12 +301,27 @@ namespace Bloom {
 		return res;
 	}
 
-	void Filter::bfs(std::string src, robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
-                 std::vector<std::string>& candidate_seqs,
+	template <typename T>
+	class CmpLonger {
+		public:
+			bool operator()(const T& t1, const T& t2) {
+				return t1.size() < t2.size();
+			}
+	};
+	template <typename T>
+	class CmpShorter {
+		public:
+			bool operator()(const T& t1, const T& t2) {
+				return t1.size() > t2.size();
+			}
+	};
+	std::vector<std::string> Filter::bfs(std::string src, robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
                  const std::function<std::string(std::string)>& extract_kmer,
                  const std::function<std::string(std::string, char)>& next_seq,
                  const std::function<std::string(std::string, std::string)>& add_parent_to_path,
-                 const std::function<std::string(std::string, uint64_t)>& clip
+                 const std::function<std::string(std::string, uint64_t)>& clip,
+				 int max_candidate_limit,
+				 int depth_limit
 				 ) {
 		std::string current_kmer = extract_kmer(src);
 		Dna::addKmerHashes(current_kmer, kmer_size, 1, seen_kmer_hashes);
@@ -315,20 +332,48 @@ namespace Bloom {
 		q.push(current_kmer);
 		parent[current_kmer] = "";
 		pathlen[current_kmer] = 0;
+		double shannon_threshold = 2.0;
 
+		std::priority_queue<std::string,
+			std::vector<std::string>,
+			CmpLonger<std::string>> pq;
+
+
+		std::vector<std::string> candidate_seqs;
 		while (q.size() > 0) {
 			std::string curr_seq = q.front();
 			q.pop();
 			bool is_leaf = true;
+			double curr_shannon = Dna::shannon(curr_seq);
+			bool is_low_complexity = curr_shannon < shannon_threshold;
+			bool too_many_neighbours = false;
+			int neighbours = 0;
+			std::vector<std::string> potential_neighbours = {};
+			if (pathlen[curr_seq] > depth_limit) {
+				continue;
+			}
+
 			for (char c : std::string("ATGC")) {
 				std::string potential_neighbour = extract_kmer(next_seq(curr_seq, c));
 				uint64_t neighbour_hash = Dna::getHashes(potential_neighbour, kmer_size, 1)[0];
 				if (searchSeq(potential_neighbour) && !seen_kmer_hashes.count(neighbour_hash)) {
+					potential_neighbours.push_back(potential_neighbour);
+				}
+			}
+			too_many_neighbours = potential_neighbours.size() > 2;
+
+			if (potential_neighbours.size() > 2) {
+
+			}
+			if (!is_low_complexity && !too_many_neighbours) {
+				for (std::string potential_neighbour: potential_neighbours) {
+					uint64_t neighbour_hash = Dna::getHashes(potential_neighbour, kmer_size, 1)[0];
 					Dna::addKmerHashes(potential_neighbour, kmer_size, 1, seen_kmer_hashes);
 					parent[potential_neighbour] = curr_seq;
 					pathlen[potential_neighbour] = pathlen[curr_seq]+1;
 					q.push(potential_neighbour);
 					is_leaf = false;
+					neighbours++;
 				}
 			}
 			if (is_leaf) {
@@ -338,46 +383,66 @@ namespace Bloom {
 					path = add_parent_to_path(path, curr_parent);
 					curr_parent = parent[curr_parent];
 				}
-				candidate_seqs.push_back(clip(path, kmer_size));
+				std::string candidate = clip(path, kmer_size);
+				if (pq.size() >= max_candidate_limit && pq.top().size() < candidate.size()) {
+					pq.pop();
+				}
+				if (pq.size() < max_candidate_limit) {
+					pq.push(candidate);
+				}
 			}
+			//std::cerr << curr_seq << '\t' << pathlen[curr_seq] 
+				//<< "\tseen kmers: " << seen_kmer_hashes.size()
+				//<< "\tneighbours: " << neighbours
+				//<< "\tshannon: " << curr_shannon << '\n';
 		}
+		size_t candidate_count = pq.size();
+		for (int i=0; i < candidate_count; i++) {
+			candidate_seqs.push_back(pq.top());
+			pq.pop();
+		}
+		return candidate_seqs;
 	}
 
-	void Filter::bfs5prime(const std::string& current_seq,
+	std::vector<std::string> Filter::bfs5prime(const std::string& src,
 			robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
-			std::vector<std::string>& candidate_seqs
+			int max_candidate_limit,
+			int max_path_length
 			) {
 
 		auto extract_kmer = [this](std::string s){ return s.substr(s.size()-kmer_size, kmer_size); };
 		auto next_seq = [](std::string str, char c) { return str + c; };
 		auto add_parent_to_path = [](std::string path, std::string parent) { return parent[0] + path; };
 		auto clip = [](std::string path, uint64_t ksize) { return path.substr(ksize, path.size()-ksize); };
-		bfs(current_seq,
+		return bfs(src,
 				seen_kmer_hashes,
-				candidate_seqs,
 				extract_kmer,
 				next_seq,
 				add_parent_to_path,
-				clip
+				clip,
+				max_candidate_limit,
+				max_path_length
 				);
 	}
 
-	void Filter::bfs3prime(const std::string& current_seq,
+	std::vector<std::string> Filter::bfs3prime(const std::string& src,
 			robin_hood::unordered_set<uint64_t> seen_kmer_hashes,
-			std::vector<std::string>& candidate_seqs
+			int max_candidate_limit,
+			int max_path_length
 			) {
 
 		auto extract_kmer = [this](std::string s){ return s.substr(0, kmer_size); };
 		auto next_seq = [](std::string str, char c) { return c + str; };
 		auto add_parent_to_path = [](std::string path, std::string parent) { return  path + parent[parent.size()-1]; };
 		auto clip = [](std::string path, uint64_t ksize) { return path.substr(0, path.size()-ksize); };
-		bfs(current_seq,
+		return bfs(src,
 				seen_kmer_hashes,
-				candidate_seqs,
 				extract_kmer,
 				next_seq,
 				add_parent_to_path,
-				clip
+				clip,
+				max_candidate_limit,
+				max_path_length
 				);
 	}
 
@@ -389,6 +454,7 @@ namespace Bloom {
 		std::string current_kmer = extract_kmer(current_seq);
 		Dna::addKmerHashes(current_kmer, kmer_size, 1, seen_kmer_hashes);
 		bool finished_path = true;
+
 		for (char c : std::string("ATGC")) {
 			std::string potential_neighbour = extract_kmer(next_seq(current_kmer, c));
 			uint64_t neighbour_hash = Dna::getHashes(potential_neighbour, kmer_size, 1)[0];
@@ -433,7 +499,8 @@ namespace Bloom {
 				next_seq
 				);
 	}
-	std::vector<std::string> Filter::extendSeq(const std::string &seq) {
+
+	std::vector<std::string> Filter::extendSeq(const std::string &seq, int max_candidate_limit, int max_path_length) {
 		robin_hood::unordered_set<uint64_t> seen_kmers_5p;
 		size_t hash_n_for_dfs = 1;
 		Dna::addKmerHashes(seq, kmer_size, hash_n_for_dfs, seen_kmers_5p);
@@ -444,9 +511,15 @@ namespace Bloom {
 
 		//dfs5prime(seq, seen_kmers_5p, candidate_seqs_5p);
 		//dfs3prime(seq, seen_kmers_3p, candidate_seqs_3p);
-		bfs5prime(seq, seen_kmers_5p, candidate_seqs_5p);
-		bfs3prime(seq, seen_kmers_3p, candidate_seqs_3p);
-		std::cerr << "candidate sizes: " << candidate_seqs_5p.size() << '\t' << candidate_seqs_3p.size() << '\n';
+		//std::cerr << "bfs5prime\n";
+
+		std::string dst = "";
+		candidate_seqs_5p = bfs5prime(seq,  seen_kmers_5p, max_candidate_limit, max_path_length);
+		candidate_seqs_3p = bfs3prime(seq,  seen_kmers_3p, max_candidate_limit, max_path_length);
+		//std::cerr << "candidate sizes: " << candidate_seqs_5p.size() << '\t' << candidate_seqs_3p.size() << '\n';
+		std::priority_queue<std::string,
+			std::vector<std::string>,
+			CmpLonger<std::string>> priorq;
 		for (const auto& seq5: candidate_seqs_5p) {
 			for (const auto& seq3: candidate_seqs_3p) {
 				//std::cerr << "seq3 " << seq3 << '\n';
@@ -454,20 +527,22 @@ namespace Bloom {
 				//std::string seq5_extension = seq5.substr(seq.size(), seq5.size()-seq.size());
 				//std::string seq3_extension = seq3.substr(0, seq3.size()-seq.size());
 				//extended_seqs.push_back(seq3_extension + seq + seq5_extension);
-				extended_seqs.push_back(seq3 + seq + seq5);
+				priorq.push(seq3 + seq + seq5);
 			}
 		}
-		for (const auto& s: extended_seqs) {
-			std::cerr << "ext seq " << s << '\n';
+		size_t candidate_count = std::min(priorq.size(), static_cast<size_t>(max_candidate_limit));
+		for (size_t i=0; i < candidate_count; i++) {
+			extended_seqs.push_back(priorq.top());
+			priorq.pop();
 		}
 
 		return extended_seqs;
 	}
 
-	std::vector<std::string> Filter::extendSeqPair(const std::string &seq1,const std::string &seq2 ) {
+	std::vector<std::string> Filter::extendSeqPair(const std::string &seq1,const std::string &seq2, int max_candidate_limit, int max_path_length) {
 		std::vector<std::string> result{};
-		std::vector<std::string> candidates_mate1 = extendSeq(seq1);
-		std::vector<std::string> candidates_mate2 = extendSeq(seq2);
+		std::vector<std::string> candidates_mate1 = extendSeq(seq1, max_candidate_limit, max_path_length);
+		std::vector<std::string> candidates_mate2 = extendSeq(seq2, max_candidate_limit, max_path_length);
 		const std::string seq1_rc = Dna::revcom(seq1);
 		const std::string seq2_rc = Dna::revcom(seq2);
 		for (auto c1: candidates_mate1) {

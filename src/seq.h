@@ -39,6 +39,7 @@ namespace Dna {
 	void softmaskNotInKmerHashes(std::string& seq
 			, const robin_hood::unordered_set<uint64_t>& kmer_hashes
 			, size_t kmer_size);
+	double shannon(const std::string& seq);
 }
 
 #endif
