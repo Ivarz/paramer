@@ -16,3 +16,6 @@
 [submodule "third_party/robin-hood-hashing"]
 	path = third_party/robin-hood-hashing
 	url = https://github.com/martinus/robin-hood-hashing
+[submodule "third_party/ntHash"]
+	path = third_party/ntHash
+	url = https://github.com/bcgsc/ntHash
