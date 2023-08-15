@@ -290,3 +290,55 @@ TEST_CASE("Testing Dna::shannon") {
 	CHECK(std::abs(Dna::shannon("ATGATGATGATGATGATGATGATG") - 1.0930808359255935) < 0.000001 );
 	CHECK(std::abs(Dna::shannon("GTCTGTCTGGTAGCTTACGATTTCCCGTGGT") - 3.0599691653497123) < 0.000001 );
 }
+
+TEST_CASE("Test Dna::maskingStats") {
+	{
+		std::string test_case = "";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 0);
+		CHECK(res.softmasked == 0);
+		CHECK(res.hardmasked == 0);
+	}
+	{
+		std::string test_case = "A";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 1);
+		CHECK(res.softmasked == 0);
+		CHECK(res.hardmasked == 0);
+	}
+	{
+		std::string test_case = "a";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 1);
+		CHECK(res.softmasked == 1);
+		CHECK(res.hardmasked == 0);
+	}
+	{
+		std::string test_case = "N";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 1);
+		CHECK(res.softmasked == 0);
+		CHECK(res.hardmasked == 1);
+	}
+	{
+		std::string test_case = "n";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 1);
+		CHECK(res.softmasked == 0);
+		CHECK(res.hardmasked == 1);
+	}
+	{
+		std::string test_case = "atgcn";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 5);
+		CHECK(res.softmasked == 4);
+		CHECK(res.hardmasked == 1);
+	}
+	{
+		std::string test_case = "ATGCatgcNn";
+		Dna::MaskingStats res = Dna::maskingStats(test_case);
+		CHECK(res.size == 10);
+		CHECK(res.softmasked == 4);
+		CHECK(res.hardmasked == 2);
+	}
+}

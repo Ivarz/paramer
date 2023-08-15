@@ -10,6 +10,11 @@
 
 namespace Dna {
 	using SeqInterval = std::pair<size_t, size_t>;
+	struct MaskingStats {
+		size_t size = 0;
+		size_t softmasked = 0;
+		size_t hardmasked = 0;
+	};
 
 	std::string revcom(const std::string& seq);
 
@@ -40,6 +45,7 @@ namespace Dna {
 			, const robin_hood::unordered_set<uint64_t>& kmer_hashes
 			, size_t kmer_size);
 	double shannon(const std::string& seq);
+	MaskingStats maskingStats(const std::string& seq);
 }
 
 #endif

@@ -255,4 +255,22 @@ namespace Dna {
 		}
 		return -shannon;
 	}
+	MaskingStats maskingStats(const std::string& seq) {
+		MaskingStats result = MaskingStats();
+		result.size = seq.size();
+		result.softmasked = 0;
+		result.hardmasked = 0;
+		if (seq.size() == 0) {
+			return  result;
+		}
+		for (const char& c: seq) {
+			if (c == 'N' || c == 'n') {
+				result.hardmasked++;
+			} 
+			if (c >= 'a' && c <= 'z' && c != 'n') {
+				result.softmasked++;
+			}
+		}
+		return result;
+	}
 }
