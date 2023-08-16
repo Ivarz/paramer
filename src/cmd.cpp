@@ -7,6 +7,7 @@
 #include <cxxopts.hpp>
 #include <iostream>
 #include <vector>
+#include <fstream>
 
 namespace Cmd {
 void print_help(const cxxopts::Options &options) {
@@ -308,11 +309,11 @@ namespace Extend {
 	}
 } // namespace Extend
 
-namespace Stats {
+namespace StatsBloom {
 	int run(int argc, char **argv) {
 
-		cxxopts::Options options("stats",
-							   "Perform various statistics operations");
+		cxxopts::Options options("stats-bloom",
+							   "Fetch metrics from bloom filter");
 			options.add_options()("b,bloom", "Bloom filter", cxxopts::value<std::string>())
 							   ("h,help", "Help message");
 
@@ -330,5 +331,48 @@ namespace Stats {
 			return 0;
 		}
 	} // namespace Stats
-} // namespace Cmd
 
+namespace StatsFasta {
+	int run(int argc, char **argv) {
+
+		cxxopts::Options options("stats-fasta",
+							   "Fetch metrics from fasta files");
+			options.add_options()("i,input", "input in fasta format", cxxopts::value<std::string>())
+			                   ("o,output", "output in tsv format", cxxopts::value<std::string>()->default_value(""))
+							   ("h,help", "Help message");
+
+			if (argc < 3) {
+			print_help(options);
+				return 0;
+			}
+			auto result = options.parse(argc - 1, argv + 1);
+			std::string fasta_fname = result["input"].as<std::string>();
+			std::string output_fname = result["output"].as<std::string>();
+			Dna::MaskingStats masking_stats;
+			Gz::Reader gzr = Gz::Reader(fasta_fname);
+			std::optional<Fasta::Rec> curr_rec = Fasta::nextRecord(gzr);
+
+			std::streambuf* buf;
+			std::ofstream ofh;
+
+			if (output_fname.size() > 0) {
+				ofh.open(output_fname);
+				buf = ofh.rdbuf();
+			} else {
+				buf = std::cout.rdbuf();
+			}
+			std::ostream out(buf);
+			out << "seq_id\tsize\tsoftmasked\thardmasked\n";
+			while (curr_rec) {
+				masking_stats = Dna::maskingStats(curr_rec->seq);
+				out << curr_rec->seq_id 
+					<< '\t' << masking_stats.size 
+					<< '\t' << masking_stats.softmasked
+					<< '\t' << masking_stats.hardmasked
+					<< '\n';
+				curr_rec = Fasta::nextRecord(gzr);
+			}
+			return 0;
+		}
+	} // namespace Stats
+} // namespace Cmd
