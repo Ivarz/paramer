@@ -95,7 +95,7 @@ TEST_CASE("Test Bloom::Filter::searchMinimizers") {
 		std::string seq = "AGTGCGTCGTCGTCGTCAGAGTGAAAACGTGCGCATGACTGACTGACTGACGTACAGGAA";
 		{
 			Bloom::Filter bloom = Bloom::Filter(1000, 31, 35, 3);
-			bloom.addSeq(seq);
+			bloom.addMinimizers(seq);
 			size_t result = bloom.searchMinimizers(seq);
 			CHECK(result == 26);
 			bloom.writeRaw("test_data/t1.blm");

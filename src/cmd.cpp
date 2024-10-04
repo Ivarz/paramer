@@ -362,16 +362,29 @@ namespace StatsFasta {
 				buf = std::cout.rdbuf();
 			}
 			std::ostream out(buf);
-			out << "seq_id\tsize\tsoftmasked\thardmasked\n";
+			out << "seq_id\tsize\tsoftmasked\thardmasked\tmasked_fraction\n";
+			uint64_t total_size = 0;
+			uint64_t total_softmasked = 0;
+			uint64_t total_hardmasked = 0;
 			while (curr_rec) {
 				masking_stats = Dna::maskingStats(curr_rec->seq);
 				out << curr_rec->seq_id 
 					<< '\t' << masking_stats.size 
 					<< '\t' << masking_stats.softmasked
 					<< '\t' << masking_stats.hardmasked
+					<< '\t' << ((masking_stats.size == 0) ? 0 : (masking_stats.softmasked + masking_stats.hardmasked) / static_cast<double>(masking_stats.size))
 					<< '\n';
+				total_size += masking_stats.size;
+				total_softmasked += masking_stats.softmasked;
+				total_hardmasked += masking_stats.hardmasked;
 				curr_rec = Fasta::nextRecord(gzr);
 			}
+			out <<  "Total"
+				<< '\t' << total_size
+				<< '\t' << total_softmasked
+				<< '\t' << total_hardmasked
+				<< '\t' << (total_softmasked + total_hardmasked) / static_cast<double>(total_size)
+				<< '\n';
 			return 0;
 		}
 	} // namespace Stats

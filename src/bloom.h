@@ -34,8 +34,15 @@ public:
   size_t searchMinimizers(const std::string& seq);
   size_t searchFastqPair(const Fastq::Pair& fq_pair);
 
-  std::vector<std::string> extendSeq(const std::string& seq, int max_candidates, int max_path_length);
-  std::vector<std::string> extendSeqPair(const std::string& seq1, const std::string& seq2, int max_candidates, int max_path_length);
+  std::vector<std::string> extendSeq(const std::string& seq,
+									 int max_candidates,
+									 int max_path_length
+  );
+  std::vector<std::string> extendSeqPair(const std::string& seq1,
+										 const std::string& seq2,
+										 int max_candidates,
+										 int max_path_length
+  );
 
   int writeRaw(const std::string &out_fname) const;
   int writeGz(const std::string &out_fname) const;
