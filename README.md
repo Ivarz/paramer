@@ -93,5 +93,5 @@ paramer bloom-search \
         -O sample_output_2.fq.gz
 ```
 
-Will generate files containing sequencing reads that have matches in the Bloom filter 
+Will output files containing sequencing reads that have matches in the Bloom filter 
 (in example: `sample_output_1.fq.gz` and `sample_output_2.fq.gz`)
