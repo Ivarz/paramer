@@ -69,7 +69,7 @@ kraken2 \
 paramer mask \
     -f ascaris_lumbricoides.PRJEB4950.WBPS19.genomic.fa.gz \
     -k k2.out.txt \
-    -f ascaris_lumbricoides.PRJEB4950.WBPS19.genomic.masked.fa.gz
+    -o ascaris_lumbricoides.PRJEB4950.WBPS19.genomic.masked.fa.gz
 ```
 
 4. build bloom filter from the reference

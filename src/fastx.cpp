@@ -53,7 +53,7 @@ namespace Fastq {
 	}
 
 	int writeRecord(Gz::Writer &gzw, const Rec &rec) {
-		gzw.writeLine(rec.seq_id);
+		gzw.writeLine("@"+rec.seq_id);
 		gzw.writeLine(rec.seq);
 		gzw.writeLine("+");
 		gzw.writeLine(rec.qual);
