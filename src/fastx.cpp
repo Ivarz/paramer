@@ -53,23 +53,17 @@ namespace Fastq {
 	}
 
 	int writeRecord(Gz::Writer &gzw, const Rec &rec) {
-		gzw.writeLine("@"+rec.seq_id);
-		gzw.writeLine(rec.seq);
-		gzw.writeLine("+");
-		gzw.writeLine(rec.qual);
-		return 0;
+		int errors = 0;
+		errors |= gzw.writeLine("@"+rec.seq_id);
+		errors |= gzw.writeLine(rec.seq);
+		errors |= gzw.writeLine("+");
+		errors |= gzw.writeLine(rec.qual);
+		return errors;
 	}
 	int writeRecordPair(Gz::Writer &gzw1, Gz::Writer &gzw2, const Pair &rec_pair) {
 		int errors = 0;
-		errors |= gzw1.writeLine(rec_pair.first.seq_id);
-		errors |= gzw1.writeLine(rec_pair.first.seq);
-		errors |= gzw1.writeLine("+");
-		errors |= gzw1.writeLine(rec_pair.first.qual);
-
-		errors |= gzw2.writeLine(rec_pair.second.seq_id);
-		errors |= gzw2.writeLine(rec_pair.second.seq);
-		errors |= gzw2.writeLine("+");
-		errors |= gzw2.writeLine(rec_pair.second.qual);
+		errors |= writeRecord(gzw1, rec_pair.first);
+		errors |= writeRecord(gzw2, rec_pair.second);
 		return errors;
 	}
 
